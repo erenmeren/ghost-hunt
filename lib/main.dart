@@ -128,6 +128,10 @@ class _MenuScreenState extends State<MenuScreen> {
                       fontSize: 40,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 3,
+                      shadows: [
+                        Shadow(color: Color(0x99FFE000), blurRadius: 12),
+                        Shadow(color: Color(0x44FFE000), blurRadius: 28),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 6),
