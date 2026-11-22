@@ -186,7 +186,7 @@ class _MenuScreenState extends State<MenuScreen> {
                   const Text(
                     'Kontroller — Easy: kaydır / ok tuşları.\n'
                     '3D: sola-sağa kaydır = sonraki kavşakta dön, aşağı = geri dön.\n'
-                    'Klavye: ← → dön, ↓ geri, 1-4 paket, M harita, P duraklat.',
+                    'Klavye: ← → dön, ↓ geri, Boşluk zıpla (Hell), 1-4 paket, M harita, P duraklat.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.white38, fontSize: 12),
                   ),

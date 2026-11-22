@@ -54,6 +54,8 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  shaders:
+    - shaders/scene.frag
   assets:
     - assets/sounds/
 

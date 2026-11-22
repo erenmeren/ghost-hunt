@@ -11,6 +11,7 @@ import '../game/game_state.dart';
 import '../game/maze.dart';
 import 'minimap_painter.dart';
 import 'raycast_painter.dart';
+import 'shader_scene.dart';
 import 'shop_screen.dart';
 import 'sprites.dart';
 import 'top_down_painter.dart';
@@ -56,7 +57,31 @@ class _GameScreenState extends State<GameScreen>
     super.initState();
     _newGame(widget.level);
     _ticker = createTicker(_onTick)..start();
+    if (Scene3D.enabled) {
+      Scene3D.load().then((sc) {
+        if (mounted) setState(() => scene = sc);
+      });
+    }
   }
+
+  Scene3D? scene;
+
+  /// Hell only: a short hop that lets you peek over the walls for
+  /// Pac-Man's glow. Needs the 3D renderer.
+  static const jumpTime = 1.1, jumpCooldown = 4.0;
+  double _jumpT = 0, _jumpCool = 0;
+  bool get _canJump =>
+      scene != null &&
+      s.difficulty == Difficulty.hell &&
+      s.phase == Phase.playing;
+  void _jump() {
+    if (!_canJump || _jumpT > 0 || _jumpCool > 0) return;
+    _jumpT = jumpTime;
+    _jumpCool = jumpCooldown;
+    widget.sfx.play('turn', volume: 0.6);
+  }
+
+  final view3d = View3D();
 
   void _newGame(int level) {
     s = GameState(
@@ -105,6 +130,13 @@ class _GameScreenState extends State<GameScreen>
     cam.angle += diff * math.min(1.0, dt * 11);
     final moving = !p.stopped && s.phase == Phase.playing;
     cam.bob = moving ? math.sin(s.clock * 9) * 3 : 0;
+    // Jump: an arc that lifts your eyes over the walls, looking down a bit.
+    if (_jumpT > 0) _jumpT = math.max(0, _jumpT - dt);
+    if (_jumpCool > 0) _jumpCool = math.max(0, _jumpCool - dt);
+    final arc = _jumpT > 0 ? math.sin(math.pi * (1 - _jumpT / jumpTime)) : 0.0;
+    view3d
+      ..eyeHeight = 0.5 + 1.5 * arc
+      ..pitch = -0.35 * arc;
   }
 
   void _say(String text, [double secs = 1.4]) {
@@ -174,6 +206,10 @@ class _GameScreenState extends State<GameScreen>
   KeyEventResult _onKey(FocusNode node, KeyEvent e) {
     if (e is! KeyDownEvent) return KeyEventResult.ignored;
     final k = e.logicalKey;
+    if (k == LogicalKeyboardKey.space) {
+      _jump();
+      return KeyEventResult.handled;
+    }
     if (k == LogicalKeyboardKey.keyM) {
       setState(() => showMap = !showMap);
       return KeyEventResult.handled;
@@ -267,7 +303,11 @@ class _GameScreenState extends State<GameScreen>
             children: [
               Positioned.fill(
                 child: CustomPaint(
-                  painter: fp ? RaycastPainter(s, cam) : TopDownPainter(s),
+                  painter: !fp
+                      ? TopDownPainter(s)
+                      : scene != null
+                      ? ShaderScenePainter(scene!, s, cam, view3d)
+                      : RaycastPainter(s, cam),
                 ),
               ),
               if (fp && frightened)
@@ -394,6 +434,11 @@ class _GameScreenState extends State<GameScreen>
               () => _turn(Turn.right),
               s.queuedTurn == Turn.right,
             ),
+            if (_canJump)
+              Opacity(
+                opacity: _jumpCool > 0 ? 0.4 : 1,
+                child: btn(Icons.keyboard_double_arrow_up, _jump, _jumpT > 0),
+              ),
           ],
         ),
       ),
