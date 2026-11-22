@@ -7,6 +7,7 @@ import 'game/economy.dart';
 import 'game/game_state.dart';
 import 'profile_store.dart';
 import 'ui/game_screen.dart';
+import 'ui/how_to_play_screen.dart';
 import 'ui/shop_screen.dart';
 import 'ui/sprites.dart';
 import 'ui/top_down_painter.dart';
@@ -87,6 +88,16 @@ class MenuScreen extends StatefulWidget {
 class _MenuScreenState extends State<MenuScreen> {
   Sfx get sfx => widget.sfx;
 
+  static final _menuButtonStyle = OutlinedButton.styleFrom(
+    foregroundColor: pacYellow,
+    side: const BorderSide(color: pacYellow),
+    padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+  );
+  static const _menuButtonText = TextStyle(
+    fontWeight: FontWeight.w900,
+    fontSize: 16,
+  );
+
   Future<void> _start(BuildContext context, Difficulty d) async {
     // Audio may only start after a user gesture on the web.
     await sfx.init();
@@ -160,31 +171,42 @@ class _MenuScreenState extends State<MenuScreen> {
                     onTap: () => _start(context, Difficulty.hell),
                   ),
                   const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: pacYellow,
-                      side: const BorderSide(color: pacYellow),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 22,
-                        vertical: 14,
-                      ),
-                    ),
-                    onPressed: () async {
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => ShopScreen(profile: widget.profile),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 12,
+                    runSpacing: 10,
+                    children: [
+                      OutlinedButton.icon(
+                        style: _menuButtonStyle,
+                        onPressed: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  ShopScreen(profile: widget.profile),
+                            ),
+                          );
+                          if (mounted) setState(() {});
+                        },
+                        icon: const Text('🛒', style: TextStyle(fontSize: 18)),
+                        label: Text(
+                          'SHOP   🪙 ${widget.profile.coins}',
+                          style: _menuButtonText,
                         ),
-                      );
-                      if (mounted) setState(() {});
-                    },
-                    icon: const Text('🛒', style: TextStyle(fontSize: 18)),
-                    label: Text(
-                      'SHOP   🪙 ${widget.profile.coins}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 16,
                       ),
-                    ),
+                      OutlinedButton.icon(
+                        style: _menuButtonStyle,
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const HowToPlayScreen(),
+                          ),
+                        ),
+                        icon: const Text('📖', style: TextStyle(fontSize: 18)),
+                        label: const Text(
+                          'NASIL OYNANIR',
+                          style: _menuButtonText,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 18),
                   const Text(
