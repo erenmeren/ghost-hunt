@@ -1,17 +1,32 @@
-# ghost_hunt
+# Ghost Hunt
 
-A new Flutter project.
+Ters Pac-Man: sen hayaletsin, Pac-Man kendi kendine oynuyor ve yemleri bitirmeye çalışıyor.
+Flutter ile yazıldı; iOS, Android ve web'de çalışıyor.
 
-## Getting Started
+## Modlar
 
-This project is a starting point for a Flutter application.
+| Mod  | Görünüm | İpucu |
+|------|---------|-------|
+| Easy | Klasik üstten 2D | Her şey ekranda |
+| Hard | Hayaletin gözünden 3D | Pac-Man'in duvarların üstünden görünen ışık huzmesi (yedikçe kalp gibi hızlanıp parlıyor), yakınlığa ve yöne göre "waka" sesi, haritada yenmiş yemlerin izi. Yön oku yok. |
+| Hell | 3D | Hiçbiri. Haritada sadece duvarlar ve sen. |
 
-A few resources to get you started if this is your first Flutter project:
+Pac-Man 3 canla başlar. Canları biterse sen kazanırsın, yemleri bitirirse o kazanır. Kazanınca seviye atlanır ve Pac-Man daha hızlı ve daha zeki olur.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Çalıştırma
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+flutter run -d chrome     # web
+flutter run               # bağlı telefon / simülatör
+flutter test
+```
+
+Web'de hızlı test için menüyü atlayıp doğrudan oyuna girebilirsin: `?mode=hard&level=2`.
+
+Ses efektleri `tool/gen_sounds.py` ile üretiliyor (`python3 tool/gen_sounds.py`).
+
+## Yapı
+
+- `lib/game/` — saf oyun mantığı (labirent, hareket, Pac-Man yapay zekası, hayaletler). Flutter'a bağımlı değil, test edilebilir.
+- `lib/ui/` — 2D çizici, raycaster (3D), mini harita, oyun ekranı.
+- `lib/audio/` — ses efektleri.
