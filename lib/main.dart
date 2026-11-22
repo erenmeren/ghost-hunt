@@ -126,7 +126,7 @@ class MenuScreen extends StatelessWidget {
                   ),
                   _ModeButton(
                     title: 'HELL',
-                    subtitle: '3D, hiçbir ipucu yok. Haritada sadece duvarlar ve sen.',
+                    subtitle: '3D, görsel ipucu yok: ışık yok, haritada sadece duvarlar ve sen. Sadece kulağına güven.',
                     color: const Color(0xFFFF2020),
                     onTap: () => _start(context, Difficulty.hell),
                   ),

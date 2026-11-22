@@ -104,7 +104,7 @@ class GameState {
   // ---------------------------------------------------------------- tuning
   bool get firstPerson => difficulty != Difficulty.easy;
   bool get showBeam => difficulty == Difficulty.hard;
-  bool get proximitySound => difficulty == Difficulty.hard;
+  bool get proximitySound => difficulty != Difficulty.easy;
   bool get minimapShowsTrail => difficulty == Difficulty.hard;
 
   double get pacSpeed => math.min(6.2, 4.6 + 0.3 * (level - 1));

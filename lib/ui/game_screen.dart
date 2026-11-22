@@ -234,6 +234,7 @@ class _GameScreenState extends State<GameScreen>
           },
           onPanUpdate: _onPanUpdate,
           child: Stack(
+            fit: StackFit.expand,
             children: [
               Positioned.fill(
                 child: CustomPaint(
@@ -258,7 +259,12 @@ class _GameScreenState extends State<GameScreen>
                     ),
                   ),
                 ),
-              SafeArea(child: _hud()),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: SafeArea(child: _hud()),
+              ),
               if (fp) _turnButtons(),
               if (fp) _minimap(),
               _centerMessage(),

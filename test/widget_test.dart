@@ -4,6 +4,8 @@ import 'package:ghost_hunt/audio/sfx.dart';
 import 'package:ghost_hunt/game/game_state.dart';
 import 'package:ghost_hunt/main.dart';
 import 'package:ghost_hunt/ui/game_screen.dart';
+import 'package:ghost_hunt/ui/raycast_painter.dart';
+import 'package:ghost_hunt/ui/top_down_painter.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
@@ -15,13 +17,24 @@ void main() {
   });
 
   for (final d in Difficulty.values) {
-    testWidgets('${d.name} mode runs for 12 seconds with input', (tester) async {
+    testWidgets('${d.name} mode runs for 12 seconds with input', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(844, 390);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
-      await tester.pumpWidget(MaterialApp(
-        home: GameScreen(difficulty: d, sfx: Sfx(), seed: 3),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: GameScreen(difficulty: d, sfx: Sfx(), seed: 3),
+        ),
+      );
+      // The game canvas must fill the whole window.
+      final paint = find.byWidgetPredicate(
+        (w) =>
+            w is CustomPaint &&
+            (w.painter is RaycastPainter || w.painter is TopDownPainter),
+      );
+      expect(tester.getSize(paint), const Size(844, 390));
       final keys = [
         LogicalKeyboardKey.arrowLeft,
         LogicalKeyboardKey.arrowUp,
