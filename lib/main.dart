@@ -3,8 +3,11 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
 import 'audio/sfx.dart';
+import 'game/economy.dart';
 import 'game/game_state.dart';
+import 'profile_store.dart';
 import 'ui/game_screen.dart';
+import 'ui/shop_screen.dart';
 import 'ui/sprites.dart';
 import 'ui/top_down_painter.dart';
 
@@ -23,6 +26,15 @@ class GhostHuntApp extends StatefulWidget {
 
 class _GhostHuntAppState extends State<GhostHuntApp> {
   final sfx = Sfx();
+  Profile? profile;
+
+  @override
+  void initState() {
+    super.initState();
+    ProfileStore.load().then((p) {
+      if (mounted) setState(() => profile = p);
+    });
+  }
 
   @override
   void dispose() {
@@ -48,21 +60,32 @@ class _GhostHuntAppState extends State<GhostHuntApp> {
         ),
         useMaterial3: true,
       ),
-      home: auto != null
+      home: profile == null
+          ? const Scaffold(backgroundColor: Colors.black)
+          : auto != null
           ? GameScreen(
               difficulty: auto,
               sfx: sfx,
+              profile: profile,
               level: int.tryParse(q['level'] ?? '') ?? 1,
             )
-          : MenuScreen(sfx: sfx),
+          : MenuScreen(sfx: sfx, profile: profile!),
     );
   }
 }
 
-class MenuScreen extends StatelessWidget {
-  const MenuScreen({super.key, required this.sfx});
+class MenuScreen extends StatefulWidget {
+  const MenuScreen({super.key, required this.sfx, required this.profile});
 
   final Sfx sfx;
+  final Profile profile;
+
+  @override
+  State<MenuScreen> createState() => _MenuScreenState();
+}
+
+class _MenuScreenState extends State<MenuScreen> {
+  Sfx get sfx => widget.sfx;
 
   Future<void> _start(BuildContext context, Difficulty d) async {
     // Audio may only start after a user gesture on the web.
@@ -70,9 +93,11 @@ class MenuScreen extends StatelessWidget {
     if (!context.mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => GameScreen(difficulty: d, sfx: sfx),
+        builder: (_) =>
+            GameScreen(difficulty: d, sfx: sfx, profile: widget.profile),
       ),
     );
+    if (mounted) setState(() {}); // coins may have changed
   }
 
   @override
@@ -130,11 +155,38 @@ class MenuScreen extends StatelessWidget {
                     color: const Color(0xFFFF2020),
                     onTap: () => _start(context, Difficulty.hell),
                   ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: pacYellow,
+                      side: const BorderSide(color: pacYellow),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 22,
+                        vertical: 14,
+                      ),
+                    ),
+                    onPressed: () async {
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ShopScreen(profile: widget.profile),
+                        ),
+                      );
+                      if (mounted) setState(() {});
+                    },
+                    icon: const Text('🛒', style: TextStyle(fontSize: 18)),
+                    label: Text(
+                      'SHOP   🪙 ${widget.profile.coins}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 18),
                   const Text(
                     'Kontroller — Easy: kaydır / ok tuşları.\n'
                     '3D: sola-sağa kaydır = sonraki kavşakta dön, aşağı = geri dön.\n'
-                    'Klavye: ← → dön, ↓ geri, M harita, P duraklat.',
+                    'Klavye: ← → dön, ↓ geri, 1-4 paket, M harita, P duraklat.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.white38, fontSize: 12),
                   ),

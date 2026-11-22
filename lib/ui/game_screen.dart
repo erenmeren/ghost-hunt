@@ -5,11 +5,13 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../audio/sfx.dart';
+import '../game/economy.dart';
 import '../game/entities.dart';
 import '../game/game_state.dart';
 import '../game/maze.dart';
 import 'minimap_painter.dart';
 import 'raycast_painter.dart';
+import 'shop_screen.dart';
 import 'sprites.dart';
 import 'top_down_painter.dart';
 
@@ -18,12 +20,14 @@ class GameScreen extends StatefulWidget {
     super.key,
     required this.difficulty,
     required this.sfx,
+    this.profile,
     this.level = 1,
     this.seed,
   });
 
   final Difficulty difficulty;
   final Sfx sfx;
+  final Profile? profile;
   final int level;
   final int? seed;
 
@@ -45,6 +49,8 @@ class _GameScreenState extends State<GameScreen>
   Offset _swipe = Offset.zero;
   bool _swipeUsed = false;
 
+  late final Profile profile = widget.profile ?? Profile();
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +63,7 @@ class _GameScreenState extends State<GameScreen>
       difficulty: widget.difficulty,
       level: level,
       seed: widget.seed,
+      profile: profile,
     );
     final m = s.maze;
     cam = Camera(s.player.x(m), s.player.y(m), s.player.dir.angle);
@@ -124,9 +131,19 @@ class _GameScreenState extends State<GameScreen>
         _say('Yendin! Geri dönüyorsun…', 3);
       case EventType.pacCaught:
         sfx.play('death', volume: 0.7);
-        _say(e.byPlayer ? 'YAKALADIN! 👻' : 'Takım arkadaşın yakaladı!', 1.6);
+        _say(
+          e.byPlayer
+              ? 'YAKALADIN! 👻  +${e.coins} 🪙'
+              : 'Takım arkadaşın yakaladı!  +${e.coins} 🪙',
+          1.6,
+        );
       case EventType.won:
         sfx.play('win', volume: 0.7);
+      case EventType.powerUp:
+        sfx.play('power', volume: 0.35);
+        _say('${e.powerUp!.emoji} ${e.powerUp!.title}!', 1.2);
+      case EventType.powerUpEnd:
+        sfx.play('turn', volume: 0.5);
       case EventType.lost:
         sfx.play('lose', volume: 0.7);
     }
@@ -138,7 +155,7 @@ class _GameScreenState extends State<GameScreen>
     final m = s.maze;
     final dist = m.distancesFrom(s.player.nearTile(m), m.pacWalkable)[tile];
     if (dist < 0) return;
-    const hearing = 22.0;
+    final hearing = s.hearing;
     final v = math.pow((1 - dist / hearing).clamp(0.0, 1.0), 1.6).toDouble();
     final rel =
         math.atan2(m.yOf(tile) + 0.5 - cam.y, m.xOf(tile) + 0.5 - cam.x) -
@@ -163,6 +180,18 @@ class _GameScreenState extends State<GameScreen>
     }
     if (k == LogicalKeyboardKey.escape || k == LogicalKeyboardKey.keyP) {
       setState(() => paused = !paused);
+      return KeyEventResult.handled;
+    }
+    const digits = [
+      LogicalKeyboardKey.digit1,
+      LogicalKeyboardKey.digit2,
+      LogicalKeyboardKey.digit3,
+      LogicalKeyboardKey.digit4,
+    ];
+    final slot = digits.indexOf(k);
+    if (slot >= 0) {
+      final packs = _packButtons;
+      if (slot < packs.length) s.usePowerUp(packs[slot]);
       return KeyEventResult.handled;
     }
     final up = k == LogicalKeyboardKey.arrowUp || k == LogicalKeyboardKey.keyW;
@@ -251,6 +280,25 @@ class _GameScreenState extends State<GameScreen>
                     ),
                   ),
                 ),
+              if (fp && (s.invisible || s.isActive(PowerUp.phase)))
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          radius: 1.1,
+                          colors: [
+                            Colors.transparent,
+                            (s.isActive(PowerUp.phase)
+                                    ? const Color(0xFFB388FF)
+                                    : Colors.white)
+                                .withValues(alpha: 0.28),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               if (fp && s.player.state == GhostState.eaten)
                 Positioned.fill(
                   child: IgnorePointer(
@@ -266,6 +314,7 @@ class _GameScreenState extends State<GameScreen>
                 child: SafeArea(child: _hud()),
               ),
               if (fp) _turnButtons(),
+              _powerBar(),
               if (fp) _minimap(),
               _centerMessage(),
               if (paused) _pauseMenu(),
@@ -294,6 +343,8 @@ class _GameScreenState extends State<GameScreen>
           Text('Seviye ${s.level}', style: style),
           const SizedBox(width: 14),
           Text('Yem ${s.maze.pelletsLeft}', style: style),
+          const SizedBox(width: 14),
+          CoinLabel(profile.coins),
           const Spacer(),
           Text('Yakaladığın ${s.playerCatches}  ', style: style),
           for (var i = 0; i < s.pacLives; i++)
@@ -344,6 +395,110 @@ class _GameScreenState extends State<GameScreen>
               s.queuedTurn == Turn.right,
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Packs that make sense in this mode (sonar is useless in Easy).
+  List<PowerUp> get _packButtons => [
+    for (final p in PowerUp.values)
+      if (!(p == PowerUp.sonar && !s.firstPerson)) p,
+  ];
+
+  bool get _touch {
+    final p = Theme.of(context).platform;
+    return p == TargetPlatform.iOS || p == TargetPlatform.android;
+  }
+
+  Widget _powerBar() {
+    final fp = s.firstPerson;
+    Widget btn(PowerUp p, int key) {
+      final count = profile.packsOf(p);
+      final left = s.active[p];
+      final usable = s.canUse(p);
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Material(
+          color: left != null
+              ? s.player.color.withValues(alpha: 0.6)
+              : Colors.white.withValues(alpha: usable ? 0.16 : 0.06),
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: usable ? () => s.usePowerUp(p) : null,
+            child: SizedBox(
+              width: 54,
+              height: 54,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Opacity(
+                    opacity: usable || left != null ? 1 : 0.35,
+                    child: Text(p.emoji, style: const TextStyle(fontSize: 26)),
+                  ),
+                  if (left != null)
+                    Positioned(
+                      bottom: 2,
+                      child: Text(
+                        left.toStringAsFixed(1),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  Positioned(
+                    right: 4,
+                    top: 2,
+                    child: Text(
+                      '$count',
+                      style: const TextStyle(
+                        color: pacYellow,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  if (!_touch)
+                    Positioned(
+                      left: 5,
+                      top: 2,
+                      child: Text(
+                        '$key',
+                        style: const TextStyle(
+                          color: Colors.white38,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final packs = _packButtons;
+    return Positioned(
+      left: 10,
+      top: 0,
+      bottom: fp ? 100 : 0,
+      child: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var i = 0; i < packs.length; i++) btn(packs[i], i + 1),
+              const SizedBox(height: 2),
+              Text(
+                'Hak: ${s.packsLeftThisLevel}',
+                style: const TextStyle(color: Colors.white54, fontSize: 11),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -469,7 +624,24 @@ class _GameScreenState extends State<GameScreen>
         textAlign: TextAlign.center,
         style: const TextStyle(color: Colors.white70, fontSize: 16),
       ),
-      const SizedBox(height: 20),
+      const SizedBox(height: 8),
+      Text(
+        'Bu bölümde kazandığın: ${s.coinsEarned} 🪙   Toplam: ${profile.coins} 🪙',
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: pacYellow, fontSize: 14),
+      ),
+      const SizedBox(height: 16),
+      OutlinedButton.icon(
+        onPressed: () async {
+          await Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => ShopScreen(profile: profile)),
+          );
+          if (mounted) setState(() {});
+        },
+        icon: const Text('🛒'),
+        label: const Text('Shop'),
+      ),
+      const SizedBox(height: 8),
       if (won)
         FilledButton(
           onPressed: () => setState(() => _newGame(s.level + 1)),

@@ -53,6 +53,14 @@ class MinimapPainter extends CustomPainter {
       }
     }
 
+    if (s.minimapShowsPac) {
+      canvas.drawCircle(
+        Offset(s.pac.x(m) * cell, s.pac.y(m) * cell),
+        cell * 0.8,
+        Paint()..color = pacYellow,
+      );
+    }
+
     // You: an arrow pointing where you look.
     if (s.player.state != GhostState.eaten) {
       final c = Offset(s.player.x(m) * cell, s.player.y(m) * cell);

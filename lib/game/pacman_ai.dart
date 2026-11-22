@@ -34,6 +34,7 @@ class PacmanAI {
     var nearest = 1 << 20;
     for (final g in s.ghosts) {
       if (!g.dangerous || g.state == GhostState.inHouse) continue;
+      if (g.isPlayer && s.invisible) continue; // can't see you
       final dist = m.distancesFrom(g.nearTile(m), m.ghostWalkable);
       final d = dist[here];
       if (d < 0 || d > perceive) continue;

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' show Color;
 
+import 'economy.dart';
 import 'entities.dart';
 import 'maze.dart';
 import 'pacman_ai.dart';
@@ -11,20 +12,43 @@ enum Phase { ready, playing, caught, won, lost }
 
 enum Turn { none, left, right }
 
-enum EventType { pellet, power, ghostEaten, playerEaten, pacCaught, won, lost }
+enum EventType {
+  pellet,
+  power,
+  ghostEaten,
+  playerEaten,
+  pacCaught,
+  won,
+  lost,
+  powerUp,
+  powerUpEnd,
+}
 
 class GameEvent {
-  const GameEvent(this.type, {this.tile = -1, this.byPlayer = false});
+  const GameEvent(
+    this.type, {
+    this.tile = -1,
+    this.byPlayer = false,
+    this.coins = 0,
+    this.powerUp,
+  });
   final EventType type;
   final int tile;
   final bool byPlayer;
+  final int coins;
+  final PowerUp? powerUp;
 }
 
 /// Pure game logic: no Flutter widgets, fully testable.
 class GameState {
-  GameState({required this.difficulty, this.level = 1, int? seed})
-    : rng = math.Random(seed),
-      maze = Maze.classic() {
+  GameState({
+    required this.difficulty,
+    this.level = 1,
+    int? seed,
+    Profile? profile,
+  }) : rng = math.Random(seed),
+       maze = Maze.classic(),
+       profile = profile ?? Profile() {
     brain = PacmanAI(rng);
     pac = PacMan(maze.pacStart, pacSpeed);
     player = Ghost(
@@ -70,6 +94,7 @@ class GameState {
   final int level;
   final math.Random rng;
   final Maze maze;
+  final Profile profile;
   late final PacmanAI brain;
   late final PacMan pac;
   late final Ghost player;
@@ -101,14 +126,48 @@ class GameState {
 
   final List<GameEvent> _events = [];
 
+  // Packs: active timers, uses left this level, coins earned this level.
+  final Map<PowerUp, double> active = {};
+  int packsUsed = 0;
+  int coinsEarned = 0;
+  int get packsLeftThisLevel => profile.slotsPerLevel - packsUsed;
+  bool isActive(PowerUp p) => (active[p] ?? 0) > 0;
+  bool get invisible => isActive(PowerUp.invisible);
+
+  bool canUse(PowerUp p) =>
+      phase == Phase.playing &&
+      player.state == GhostState.active &&
+      profile.packsOf(p) > 0 &&
+      packsLeftThisLevel > 0 &&
+      !isActive(p) &&
+      !(p == PowerUp.sonar && difficulty == Difficulty.easy);
+
+  bool usePowerUp(PowerUp p) {
+    if (!canUse(p) || !profile.consumePack(p)) return false;
+    packsUsed++;
+    active[p] = p.duration;
+    _events.add(GameEvent(EventType.powerUp, powerUp: p));
+    return true;
+  }
+
+  void _earn(int n) {
+    coinsEarned += n;
+    profile.addCoins(n);
+  }
+
   // ---------------------------------------------------------------- tuning
   bool get firstPerson => difficulty != Difficulty.easy;
-  bool get showBeam => difficulty == Difficulty.hard;
+  bool get showBeam => difficulty == Difficulty.hard || isActive(PowerUp.sonar);
+  bool get minimapShowsPac => isActive(PowerUp.sonar);
   bool get proximitySound => difficulty != Difficulty.easy;
   bool get minimapShowsTrail => difficulty == Difficulty.hard;
 
   double get pacSpeed => math.min(6.2, 4.6 + 0.3 * (level - 1));
-  double get playerSpeed => 5.0;
+  double get playerSpeed =>
+      5.0 * profile.speedMultiplier * (isActive(PowerUp.speed) ? 1.4 : 1.0);
+
+  /// How far (in corridor tiles) Pac-Man's waka can be heard.
+  double get hearing => 22.0 + profile.hearingBonus;
   double get aiSpeed => math.min(5.0, 4.0 + 0.2 * (level - 1));
   double get frightDuration => math.max(2.0, 7.0 - (level - 1));
 
@@ -196,6 +255,20 @@ class GameState {
 
   void _tick(double dt) {
     time += dt;
+    for (final p in active.keys.toList()) {
+      final left = active[p]! - dt;
+      // Never end "phase" while the player is inside a wall.
+      if (left <= 0 && p == PowerUp.phase && _insideWall) {
+        active[p] = 0.01;
+        continue;
+      }
+      if (left <= 0) {
+        active.remove(p);
+        _events.add(GameEvent(EventType.powerUpEnd, powerUp: p));
+      } else {
+        active[p] = left;
+      }
+    }
     if (frightTimer > 0) {
       frightTimer -= dt;
       if (frightTimer <= 0) {
@@ -299,7 +372,7 @@ class GameState {
       case GhostState.active:
         if (g.isPlayer) {
           g.speed = g.frightened ? 3.6 : playerSpeed;
-          g.step(dt, maze, maze.pacWalkable, _decidePlayer);
+          g.step(dt, maze, _playerPassable, _decidePlayer);
         } else {
           g.speed = g.frightened ? 2.6 : aiSpeed;
           g.step(dt, maze, maze.pacWalkable, () => _decideAi(g));
@@ -307,9 +380,27 @@ class GameState {
     }
   }
 
+  bool get _insideWall {
+    final t = maze.tileAt(player.tile);
+    final n = player.progress > 0 ? maze.neighbor(player.tile, player.dir) : -1;
+    return t == Tile.wall || (n >= 0 && maze.tileAt(n) == Tile.wall);
+  }
+
+  /// With the phase pack the player walks through inner walls (never the
+  /// outer border, never into the ghost house).
+  bool _playerPassable(int i) {
+    if (maze.pacWalkable(i)) return true;
+    if (!isActive(PowerUp.phase) || i < 0) return false;
+    final x = maze.xOf(i), y = maze.yOf(i);
+    if (x <= 0 || y <= 0 || x >= maze.width - 1 || y >= maze.height - 1) {
+      return false;
+    }
+    return maze.tileAt(i) == Tile.wall;
+  }
+
   Dir _decidePlayer() {
     final g = player;
-    bool can(Dir d) => maze.pacWalkable(maze.neighbor(g.tile, d));
+    bool can(Dir d) => _playerPassable(maze.neighbor(g.tile, d));
     if (!firstPerson) {
       if (wantedDir != Dir.none && can(wantedDir)) return wantedDir;
       return can(g.dir) ? g.dir : Dir.none;
@@ -391,10 +482,21 @@ class GameState {
         pacLives--;
         teamCatches++;
         if (g.isPlayer) playerCatches++;
-        _events.add(GameEvent(EventType.pacCaught, byPlayer: g.isPlayer));
+        final reward = g.isPlayer
+            ? Rewards.playerCatch(
+                difficulty,
+                maze.pelletsLeft / maze.totalPellets,
+              )
+            : Rewards.teamCatch(difficulty);
+        _earn(reward);
+        _events.add(
+          GameEvent(EventType.pacCaught, byPlayer: g.isPlayer, coins: reward),
+        );
         if (pacLives <= 0) {
           phase = Phase.won;
-          _events.add(const GameEvent(EventType.won));
+          final bonus = Rewards.levelWin(difficulty, level);
+          _earn(bonus);
+          _events.add(GameEvent(EventType.won, coins: bonus));
         } else {
           phase = Phase.caught;
           phaseTimer = 1.6;
@@ -417,6 +519,7 @@ class GameState {
       g.timer = g.releaseDelay;
     }
     frightTimer = 0;
+    active.remove(PowerUp.phase);
     queuedTurn = Turn.none;
     wantedDir = Dir.none;
   }
