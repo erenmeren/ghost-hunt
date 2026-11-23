@@ -1,95 +1,99 @@
 # 👻 Ghost Hunt
 
-**Ters Pac-Man.** Bu sefer hayalet sensin. Pac-Man kendi kendine oynuyor, yemleri bitirmeye çalışıyor ve senden kaçıyor. Görevin onu yakalamak.
+**Reverse Pac-Man.** This time you are the ghost. Pac-Man plays by himself: he tries to clear the pellets and runs from you. Your job is to catch him.
 
-Flutter ile yazıldı. Tek kod tabanıyla **web, iOS ve Android**'de çalışıyor.
+Built with Flutter. One codebase runs on **web, iOS and Android**.
 
-▶️ **Tarayıcıda oyna:** https://erenmeren.github.io/ghost-hunt/
+▶️ **Play in your browser:** https://erenmeren.github.io/ghost-hunt/
 
-| Easy (2D) | Hard (3D) | Hell, zıplarken |
+| Easy (2D) | Hard (3D) | Hell, mid-jump |
 |---|---|---|
 | ![Easy](docs/easy.png) | ![Hard](docs/hard.png) | ![Hell](docs/hell-jump.png) |
 
-## Modlar
+## Modes
 
-| Mod | Görünüm | Elindeki ipuçları |
-|------|---------|-------|
-| **Easy** | Klasik, üstten 2D | Her şey ekranda. Güç hapı yiyen Pac-Man seni kovalar. |
-| **Hard** | Hayaletin gözünden, birinci şahıs 3D | Pac-Man'in duvarların üstünden yükselen sarı ışık huzmesi. Huzme yem yedikçe kalp atışı gibi hızlanıp parlıyor. Yönüne ve uzaklığına göre değişen "waka" sesi var. Sağ altta açılıp kapanan haritada yenmiş yemlerin izi görünüyor. Yön oku yok. |
-| **Hell** | 3D, kırmızı, karanlık, titreyen ışık | Görsel ipucu yok, haritada sadece duvarlar ve sen varsın. Sadece ses var ve **zıplayıp** duvarların üstünden bakabilirsin. |
+| Mode | View | What helps you |
+|------|------|----------------|
+| **Easy** | Classic top-down 2D | Everything is on screen. After a power pellet, Pac-Man chases you. |
+| **Hard** | First-person 3D, through the ghost's eyes | A yellow beam of light rises from Pac-Man above the walls. It pulses faster and brighter as he eats, like a heartbeat. A "waka" sound changes with his direction and distance. A toggleable map in the bottom-right shows the trail of eaten pellets. No direction arrow. |
+| **Hell** | 3D, red, dark, flickering light | No visual hints; the map shows only the walls and you. Sound only, and you can **jump** to look over the walls. |
 
-- Pac-Man 3 canla başlar. Canlarını sen ve diğer hayaletler bitirirseniz kazanırsınız. Pac-Man yemleri bitirirse o kazanır.
-- Kazandıkça seviye atlarsın. Her seviyede Pac-Man daha hızlı ve daha zeki oluyor.
-- Diğer üç hayalet de oyunda, kendi kişilikleriyle Pac-Man'i kovalıyor.
+- Pac-Man starts with 3 lives. If you and the other ghosts take them all, you win. If Pac-Man clears the pellets, he wins.
+- Each win takes you to the next level. Every level, Pac-Man gets faster and smarter.
+- The other three ghosts are in the game too, each chasing Pac-Man with its own personality.
 
-## Para, shop ve paketler
+The **How to play** screen in the main menu explains all of this inside the game.
 
-Para tamamen oyun içinde, gerçek parayla hiçbir şey satılmıyor.
+## Coins, shop and packs
 
-- **Kazanma:** Pac-Man'i sen yakalarsan 20–40 🪙 alırsın; ne kadar erken yakalarsan o kadar çok. Takım arkadaşın yakalarsa 5 🪙. Bölümü bitirince bonus var.
-- **Mod çarpanı:** Easy ×1, Hard ×2, Hell ×4. Yeni oyuncu 150 🪙 ile başlar.
-- **Kayıt:** Para ve satın aldıkların cihazda saklanıyor (webde tarayıcının localStorage'ında).
+Coins exist only inside the game. Nothing is sold for real money.
 
-| Paket | Fiyat | Etki |
+- **Earning:** catch Pac-Man yourself for 20–40 🪙 (the sooner, the more). A teammate's catch gives you 5 🪙. Clearing a level gives a bonus.
+- **Mode multiplier:** Easy ×1, Hard ×2, Hell ×4. New players start with 150 🪙.
+- **Saving:** coins and purchases are stored on the device (in the browser's localStorage on the web).
+
+| Pack | Price | Effect |
 |---|---|---|
-| ⚡ Hız | 60 | 5 saniye %40 daha hızlı |
-| 👻 Görünmezlik | 120 | 5 saniye Pac-Man seni görmez, senden kaçmaz |
-| 🧱 Duvardan geçme | 150 | 3 saniye iç duvarlardan geçersin |
-| 📡 Sonar | 90 | 2 saniye Pac-Man'in ışığı ve haritadaki yeri görünür (Hard/Hell) |
+| ⚡ Speed pack | 60 | Move 40% faster for 5 seconds |
+| 👻 Invisibility | 120 | For 5 seconds Pac-Man can't see you or run from you |
+| 🧱 Wall pass | 150 | Pass through inner walls for 3 seconds |
+| 📡 Sonar | 90 | See Pac-Man's light and his spot on the map for 2 seconds (Hard/Hell) |
 
-Kalıcı yükseltmeler de var, her biri 3 seviyeli: 🏃 temel hız, 👂 Pac-Man'i daha uzaktan duyma, 🎒 bir bölümde fazladan paket kullanma hakkı. Bir bölümde varsayılan olarak en fazla 2 paket kullanılabiliyor.
+There are also permanent upgrades, 3 levels each: 🏃 Base speed, 👂 Sharp ears (hear Pac-Man from farther away), 🎒 Big bag (one more pack per level). By default you can use up to 2 packs per level.
 
-## Kontroller
+## Controls
 
-| | Klavye | Telefon |
+| | Keyboard | Phone |
 |---|---|---|
-| Dön (bir sonraki kavşakta) | ← → | Sola/sağa kaydır veya dönüş düğmeleri |
-| Geri dön | ↓ | Aşağı kaydır veya ↶ düğmesi |
-| Zıpla (Hell) | Boşluk | ⏫ düğmesi |
-| Paket kullan | 1–4 | Soldaki paket düğmeleri |
-| Harita aç/kapat | M | Sağ alttaki düğme |
-| Duraklat | P / Esc | ⏸ |
+| Turn (at the next junction) | ← → | Swipe left/right or the turn buttons |
+| Turn back | ↓ | Swipe down or the ↶ button |
+| Jump (Hell) | Space | ⏫ button |
+| Use a pack | 1–4 | Pack buttons on the left |
+| Show/hide map | M | Button in the bottom-right |
+| Pause | P / Esc | ⏸ |
 
-## Çalıştırma
+## Running it
 
-[Flutter](https://docs.flutter.dev/get-started/install) 3.x gerekiyor.
+Requires [Flutter](https://docs.flutter.dev/get-started/install) 3.x.
 
 ```bash
 flutter pub get
 flutter run -d chrome          # web
-flutter run                    # bağlı telefon veya simülatör
-flutter test                   # testler
-flutter build web              # build/web altına statik site üretir
+flutter run                    # connected phone or simulator
+flutter test                   # tests
+flutter build web              # static site in build/web
 ```
 
-Webde menüyü atlayıp doğrudan bir moda girmek için adrese parametre ekleyebilirsin: `?mode=easy|hard|hell&level=2`.
-3D görüntü takılırsa `?renderer=ray` ile daha hafif olan eski çiziciye geçebilirsin.
+On the web you can skip the menu and jump straight into a mode: `?mode=easy|hard|hell&level=2`.
+If the 3D view stutters, `?renderer=ray` switches to the lighter fallback renderer.
 
-Ses efektleri koddan sentezleniyor: `python3 tool/gen_sounds.py` dosyaları `assets/sounds/` altına yazar.
+Sound effects are synthesized from code: `python3 tool/gen_sounds.py` writes them to `assets/sounds/`.
 
-## Nasıl çalışıyor?
+Every push to `main` runs the tests and deploys the web build to GitHub Pages (`.github/workflows/pages.yml`).
 
-- **Pac-Man'in yapay zekası** (`lib/game/pacman_ai.dart`): En yakın yemlere yol arıyor ve hayaletlerin nereye ulaşabileceğini gösteren bir tehlike haritası çıkarıyor. Seviye arttıkça daha uzağı görüyor ve daha az hata yapıyor. Güç hapı yediğinde rolleri değiştirip seni kovalıyor.
-- **3D görüntü** (`shaders/scene.frag`): Oyun motoru kullanılmıyor. Labirent küçük bir dokuya yazılıyor. Ekrandaki her pikselin rengi, ekran kartında çalışan bir fragment shader'ın gönderdiği ışınla hesaplanıyor. Pac-Man sahnedeki tek ışık kaynağı, duvarlara gölge düşürüyor. Zıplarken kamera duvarların üstüne çıkabiliyor.
-- **Yedek çizici** (`lib/ui/raycast_painter.dart`): Shader desteği olmayan ortamlar için Wolfenstein tarzı klasik raycaster.
+## How it works
+
+- **Pac-Man's AI** (`lib/game/pacman_ai.dart`): searches for paths to the nearest pellets and builds a danger map of where the ghosts can reach. At higher levels he looks further ahead and makes fewer mistakes. After a power pellet he switches roles and hunts you.
+- **3D view** (`shaders/scene.frag`): no game engine. The maze is written into a tiny texture, and a fragment shader on the GPU casts a ray for every pixel. Pac-Man is the only light source and casts shadows on the walls. When you jump, the camera rises above the walls.
+- **Fallback renderer** (`lib/ui/raycast_painter.dart`): a classic Wolfenstein-style raycaster for environments without shader support.
 
 ```
 lib/
-  game/      oyun mantığı: labirent, hareket, Pac-Man AI, ekonomi (Flutter'dan bağımsız, test edilebilir)
-  ui/        2D çizici, 3D shader sahnesi, raycaster, mini harita, oyun ve shop ekranları
-  audio/     ses efektleri
-shaders/     3D sahne (GLSL)
-test/        oyun mantığı, ekonomi, widget ve görüntü testleri
-tool/        ses üretici
+  game/      game logic: maze, movement, Pac-Man AI, economy (Flutter-independent, testable)
+  ui/        2D painter, 3D shader scene, raycaster, minimap, game, shop and how-to-play screens
+  audio/     sound effects
+shaders/     3D scene (GLSL)
+test/        game logic, economy, widget and rendering tests
+tool/        sound generator
 ```
 
-## Yol haritası
+## Roadmap
 
-- [ ] Uçuş paketi
-- [ ] Easy için yukarıdan eğik bakan 3D görünüm
-- [ ] Görsel tarzın baştan ele alınması (karakter modelleri, kaplamalar, menü)
-- [ ] Gerçek telefonlarda performans testi ve App Store / Play Store derlemeleri
+- [ ] Flight pack
+- [ ] Angled top-down 3D view for Easy
+- [ ] Visual style overhaul (character models, textures, menu)
+- [ ] Performance testing on real phones, App Store / Play Store builds
 
-## Lisans
+## License
 
 [Apache License 2.0](LICENSE)

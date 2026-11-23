@@ -1,11 +1,11 @@
 {
-    "name": "ghost_hunt",
-    "short_name": "ghost_hunt",
+    "name": "Ghost Hunt",
+    "short_name": "Ghost Hunt",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Ghost Hunt: reverse Pac-Man. You are the ghost.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
