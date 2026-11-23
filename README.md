@@ -4,6 +4,8 @@
 
 Flutter ile yazıldı. Tek kod tabanıyla **web, iOS ve Android**'de çalışıyor.
 
+▶️ **Tarayıcıda oyna:** https://erenmeren.github.io/ghost-hunt/
+
 | Easy (2D) | Hard (3D) | Hell, zıplarken |
 |---|---|---|
 | ![Easy](docs/easy.png) | ![Hard](docs/hard.png) | ![Hell](docs/hell-jump.png) |
@@ -87,3 +89,7 @@ tool/        ses üretici
 - [ ] Easy için yukarıdan eğik bakan 3D görünüm
 - [ ] Görsel tarzın baştan ele alınması (karakter modelleri, kaplamalar, menü)
 - [ ] Gerçek telefonlarda performans testi ve App Store / Play Store derlemeleri
+
+## Lisans
+
+[Apache License 2.0](LICENSE)
