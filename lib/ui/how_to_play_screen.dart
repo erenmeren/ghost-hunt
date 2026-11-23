@@ -5,7 +5,7 @@ import '../game/game_state.dart';
 import 'sprites.dart';
 import 'top_down_painter.dart' show wallBlue;
 
-/// "Nasıl oynanır": goal, modes, packs, coins and controls. Opened from the
+/// "How to play": goal, modes, packs, coins and controls. Opened from the
 /// menu. Pack/upgrade texts and numbers come from the game code itself so
 /// this page cannot drift from the shop.
 class HowToPlayScreen extends StatelessWidget {
@@ -27,11 +27,11 @@ class HowToPlayScreen extends StatelessWidget {
         backgroundColor: Colors.black,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          tooltip: 'Geri',
+          tooltip: 'Back',
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: const Text(
-          'NASIL OYNANIR',
+          'HOW TO PLAY',
           style: TextStyle(fontWeight: FontWeight.w900),
         ),
       ),
@@ -43,149 +43,142 @@ class HowToPlayScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const _Header('Amaç'),
+                const _Header('Goal'),
                 const _Bullet(
-                  'Bu sefer hayalet sensin. Pac-Man kendi kendine oynuyor: '
-                  'yemleri yiyor ve senden kaçıyor. Görevin, o bütün yemleri '
-                  'bitirmeden onu yakalamak.',
+                  'This time you\'re the ghost. Pac-Man plays on his own: he '
+                  'eats pellets and runs from you. Your job is to catch him '
+                  'before he eats them all.',
                 ),
                 const _Bullet(
-                  'Pac-Man 3 canla başlar. Sen ya da takım arkadaşların '
-                  '(diğer üç hayalet) onu her yakaladığınızda bir canı gider. '
-                  'Canları biterse bölümü kazanır, sonraki seviyeye geçersin.',
+                  'Pac-Man starts with 3 lives. Every time you or your '
+                  'teammates (the other three ghosts) catch him, he loses one. '
+                  'When he runs out, you win and move on to the next level.',
                 ),
                 const _Bullet(
-                  'Pac-Man bütün yemleri bitirirse o kazanır; bölümü tekrar '
-                  'denersin.',
+                  'If Pac-Man eats all the pellets, he wins and you try the '
+                  'level again.',
                 ),
                 const _Bullet(
-                  'Pac-Man güç hapı yerse hayaletler bir süre maviye döner ve '
-                  'Pac-Man sizi kovalar: kaç! Mavi haldeyken ona değersen '
-                  'yenirsin ve birkaç saniye sonra başlangıç noktasında '
-                  'yeniden doğarsın.',
+                  'When Pac-Man eats a power pellet, the ghosts turn blue for '
+                  'a while and he chases you all: run! Touch him while you\'re '
+                  'blue and you get eaten, then respawn at your starting point '
+                  'a few seconds later.',
                 ),
                 const _Bullet(
-                  'Her seviyede Pac-Man biraz daha hızlı ve daha zeki olur.',
+                  'Pac-Man gets a little faster and smarter every level.',
                 ),
                 const SizedBox(height: 18),
-                const _Header('Modlar'),
+                const _Header('Modes'),
                 const _ModeCard(
                   title: 'EASY',
                   color: _easy,
                   lines: [
-                    'Klasik üstten 2D görünüm. Her şey ekranda: labirent, '
-                        'yemler, Pac-Man ve diğer hayaletler.',
-                    'Kaydırarak ya da ok tuşlarıyla gitmek istediğin yönü '
-                        'seçersin.',
-                    'Sonar paketi bu modda kullanılmaz.',
+                    'Classic top-down 2D view. Everything is on screen: the '
+                        'maze, the pellets, Pac-Man and the other ghosts.',
+                    'Swipe or use the arrow keys to choose which way to go.',
+                    'The Sonar pack can\'t be used in this mode.',
                   ],
                 ),
                 _ModeCard(
                   title: 'HARD',
                   color: _hard,
                   lines: [
-                    'Hayaletin gözünden, birinci şahıs 3D.',
-                    'Pac-Man\'in sarı ışık huzmesi duvarların üstünden '
-                        'görünür; yem yedikçe kalp gibi hızlanarak atar.',
-                    '"Waka" sesi Pac-Man koridorlardan sana yaklaştıkça '
-                        'yükselir ve geldiği taraftan duyulur.',
-                    'Sağ alttaki haritada Pac-Man yok, ama kalan yemler var: '
-                        'yenmiş yemlerin bıraktığı iz ipucudur.',
-                    'Kazandığın para ×${Rewards.multiplier(Difficulty.hard)}.',
+                    'First-person 3D through the ghost\'s eyes.',
+                    'Pac-Man\'s yellow light beam shows above the walls and '
+                        'beats like a heart, faster as he eats pellets.',
+                    'The "waka" gets louder as Pac-Man nears you through the '
+                        'corridors, and you hear it from the side he is on.',
+                    'The map at the bottom right doesn\'t show Pac-Man, but it '
+                        'does show the pellets left: the trail of eaten '
+                        'pellets is your clue.',
+                    'Coins earned ×${Rewards.multiplier(Difficulty.hard)}.',
                   ],
                 ),
                 _ModeCard(
                   title: 'HELL',
                   color: _hell,
                   lines: [
-                    '3D, görsel ipucu yok: ışık huzmesi yok, haritada sadece '
-                        'duvarlar ve sen.',
-                    'Sadece kulağına güven: Pac-Man\'i "waka" sesinden '
-                        'bulursun.',
-                    'Zıplayıp bir anlığına duvarların üstünden bakabilir, '
-                        'Pac-Man\'in parıltısını arayabilirsin (birkaç saniyede '
-                        'bir).',
-                    'Kazandığın para ×${Rewards.multiplier(Difficulty.hell)}.',
+                    '3D, no visual hints: no light beam, only the walls and '
+                        'you on the map.',
+                    'Trust your ears alone: find Pac-Man by his "waka".',
+                    'Jump to peek over the walls for a moment and look for '
+                        'Pac-Man\'s glow (once every few seconds).',
+                    'Coins earned ×${Rewards.multiplier(Difficulty.hell)}.',
                   ],
                 ),
                 const SizedBox(height: 18),
-                const _Header('Paketler'),
+                const _Header('Packs'),
                 const _Note(
-                  'Shop\'tan alınır, bölüm içinde soldaki düğmelerle ya da '
-                  '1–4 tuşlarıyla kullanılır ve kullanınca biter. Bir bölümde '
-                  'en fazla 2 paket kullanabilirsin (🎒 Büyük çanta ile daha '
-                  'fazla). Etkisi süren bir paketi bitmeden tekrar açamazsın.',
+                  'Bought in the shop, used during a level with the buttons on '
+                  'the left or keys 1–4, and gone once used. You can use up to '
+                  '2 packs per level (more with 🎒 Big bag). You can\'t use a '
+                  'pack again while its effect is still active.',
                 ),
                 for (final p in PowerUp.values)
                   _ItemCard(
                     emoji: p.emoji,
                     title: p.title,
                     description: p == PowerUp.sonar
-                        ? '${p.description} Sadece Hard ve Hell\'de.'
+                        ? '${p.description} Hard and Hell only.'
                         : p.description,
                     extra: '🪙 ${p.price}',
                   ),
                 const SizedBox(height: 18),
-                const _Header('Para ve yükseltmeler'),
+                const _Header('Coins & upgrades'),
                 _Bullet(
-                  'Pac-Man\'i sen yakalarsan $catchMin–$catchMax 🪙 '
-                  'kazanırsın; ne kadar erken yakalarsan o kadar çok. Takım '
-                  'arkadaşın yakalarsa ${Rewards.teamCatch(e)} 🪙, bölümü '
-                  'kazanınca da bonus var.',
+                  'Catch Pac-Man yourself to earn $catchMin–$catchMax 🪙; the '
+                  'earlier you catch him, the more you get. If a teammate '
+                  'catches him you get ${Rewards.teamCatch(e)} 🪙, and winning '
+                  'the level pays a bonus.',
                 ),
                 _Bullet(
-                  'Hard\'da kazanç ×${Rewards.multiplier(Difficulty.hard)}, '
-                  'Hell\'de ×${Rewards.multiplier(Difficulty.hell)}. Yeni '
-                  'oyuncu ${Profile.welcomeCoins} 🪙 ile başlar.',
+                  'Earnings are ×${Rewards.multiplier(Difficulty.hard)} in '
+                  'Hard and ×${Rewards.multiplier(Difficulty.hell)} in Hell. '
+                  'New players start with ${Profile.welcomeCoins} 🪙.',
                 ),
                 const _Bullet(
-                  'Paraları menüdeki shop\'ta ya da bölüm sonunda harcarsın.',
+                  'Spend coins in the shop, from the menu or after a level.',
                 ),
-                const _Note(
-                  'Kalıcı yükseltmeler bir kere alınır, hep geçerlidir:',
-                ),
+                const _Note('Permanent upgrades: buy once, keep forever.'),
                 for (final u in Upgrade.values)
                   _ItemCard(
                     emoji: u.emoji,
                     title: u.title,
                     description: u.description,
-                    extra: 'En fazla ${u.maxLevel} seviye',
+                    extra: 'Up to ${u.maxLevel} levels',
                   ),
                 const SizedBox(height: 18),
-                const _Header('Kontroller'),
+                const _Header('Controls'),
                 const _Control(
                   'Easy',
-                  'Kaydır, ok tuşları ya da WASD: o yöne git.',
+                  'Swipe, arrow keys or WASD: go that way.',
                 ),
                 const _Control(
                   'Hard / Hell',
-                  'Sola-sağa kaydır, ← → (A D) ya da dönüş düğmeleri: bir '
-                      'sonraki kavşakta dön.',
+                  'Swipe left/right, ← → (A D) or the turn buttons: turn at '
+                      'the next junction.',
                 ),
                 const _Control(
                   '',
-                  'Aşağı kaydır, ↓ (S) ya da ↶ düğmesi: geri dön.',
+                  'Swipe down, ↓ (S) or the ↶ button: turn back.',
                 ),
                 const _Control(
                   '',
-                  'Yukarı kaydır ya da ↑ (W): sıradaki dönüşü iptal et, düz '
-                      'devam et.',
+                  'Swipe up or ↑ (W): cancel the queued turn and go straight '
+                      'on.',
                 ),
                 const _Control(
                   '',
-                  'Virajlarda kendiliğinden dönersin; T kavşakta sen yön '
-                      'seçene kadar beklersin.',
+                  'You follow bends automatically; at a T-junction you wait '
+                      'until you pick a direction.',
                 ),
+                const _Control('Jump', 'Space or the ⏫ button (Hell only).'),
+                const _Control('Packs', '1–4 or the buttons on the left.'),
                 const _Control(
-                  'Zıplama',
-                  'Boşluk ya da ⏫ düğmesi (sadece Hell).',
+                  'Map',
+                  'M or the button at the bottom right (Hard, Hell).',
                 ),
-                const _Control('Paketler', '1–4 ya da soldaki düğmeler.'),
-                const _Control(
-                  'Harita',
-                  'M ya da sağ alttaki düğme (Hard, Hell).',
-                ),
-                const _Control('Duraklat', 'P, Esc ya da ⏸ düğmesi.'),
+                const _Control('Pause', 'P, Esc or the ⏸ button.'),
                 const SizedBox(height: 12),
               ],
             ),

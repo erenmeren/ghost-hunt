@@ -20,7 +20,7 @@ void main() {
     await tester.pumpWidget(const GhostHuntApp());
     await tester.pumpAndSettle();
 
-    final open = find.text('NASIL OYNANIR');
+    final open = find.text('HOW TO PLAY');
     expect(open, findsOneWidget);
     // The menu still fits the window: the new button is on screen.
     final r = tester.getRect(open);
@@ -31,7 +31,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(HowToPlayScreen), findsOneWidget);
-    expect(inPage(find.text('NASIL OYNANIR')), findsOneWidget); // app bar
+    expect(inPage(find.text('HOW TO PLAY')), findsOneWidget); // app bar
     for (final mode in ['EASY', 'HARD', 'HELL']) {
       expect(inPage(find.text(mode)), findsOneWidget);
     }
@@ -45,23 +45,23 @@ void main() {
     // The page scrolls all the way down to the controls.
     final scrollable = inPage(find.byType(Scrollable));
     await tester.scrollUntilVisible(
-      inPage(find.text('Kontroller')),
+      inPage(find.text('Controls')),
       300,
       scrollable: scrollable,
     );
     await tester.scrollUntilVisible(
-      inPage(find.text('Duraklat')),
+      inPage(find.text('Pause')),
       300,
       scrollable: scrollable,
     );
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.byTooltip('Geri'));
+    await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
 
     expect(find.byType(HowToPlayScreen), findsNothing);
     expect(find.text('GHOST HUNT'), findsOneWidget);
     expect(find.text('EASY'), findsOneWidget);
-    expect(find.text('NASIL OYNANIR'), findsOneWidget);
+    expect(find.text('HOW TO PLAY'), findsOneWidget);
   });
 }

@@ -155,18 +155,18 @@ class _GameScreenState extends State<GameScreen>
         }
       case EventType.power:
         sfx.play('power', volume: 0.6);
-        _say('Pac-Man güç hapı yedi! KAÇ!', 2);
+        _say('Pac-Man ate a power pellet! RUN!', 2);
       case EventType.ghostEaten:
         sfx.play('eat_ghost', volume: 0.5);
       case EventType.playerEaten:
         sfx.play('eat_ghost', volume: 0.8);
-        _say('Yendin! Geri dönüyorsun…', 3);
+        _say('You got eaten! Respawning…', 3);
       case EventType.pacCaught:
         sfx.play('death', volume: 0.7);
         _say(
           e.byPlayer
-              ? 'YAKALADIN! 👻  +${e.coins} 🪙'
-              : 'Takım arkadaşın yakaladı!  +${e.coins} 🪙',
+              ? 'YOU GOT HIM! 👻  +${e.coins} 🪙'
+              : 'A teammate got him!  +${e.coins} 🪙',
           1.6,
         );
       case EventType.won:
@@ -380,13 +380,13 @@ class _GameScreenState extends State<GameScreen>
             icon: const Icon(Icons.pause_circle_outline, color: Colors.white),
             onPressed: () => setState(() => paused = true),
           ),
-          Text('Seviye ${s.level}', style: style),
+          Text('Level ${s.level}', style: style),
           const SizedBox(width: 14),
-          Text('Yem ${s.maze.pelletsLeft}', style: style),
+          Text('Pellets ${s.maze.pelletsLeft}', style: style),
           const SizedBox(width: 14),
           CoinLabel(profile.coins),
           const Spacer(),
-          Text('Yakaladığın ${s.playerCatches}  ', style: style),
+          Text('Caught ${s.playerCatches}  ', style: style),
           for (var i = 0; i < s.pacLives; i++)
             Padding(
               padding: const EdgeInsets.only(left: 4),
@@ -539,7 +539,7 @@ class _GameScreenState extends State<GameScreen>
               for (var i = 0; i < packs.length; i++) btn(packs[i], i + 1),
               const SizedBox(height: 2),
               Text(
-                'Hak: ${s.packsLeftThisLevel}',
+                'Uses: ${s.packsLeftThisLevel}',
                 style: const TextStyle(color: Colors.white54, fontSize: 11),
               ),
             ],
@@ -583,7 +583,7 @@ class _GameScreenState extends State<GameScreen>
               ),
               onPressed: () => setState(() => showMap = !showMap),
               icon: Icon(showMap ? Icons.map : Icons.map_outlined, size: 18),
-              label: Text(showMap ? 'Haritayı kapat' : 'Harita'),
+              label: Text(showMap ? 'Hide map' : 'Map'),
             ),
           ],
         ),
@@ -593,7 +593,7 @@ class _GameScreenState extends State<GameScreen>
 
   Widget _centerMessage() {
     String? text = flash;
-    if (s.phase == Phase.ready) text = 'HAZIR!';
+    if (s.phase == Phase.ready) text = 'READY!';
     if (text == null) return const SizedBox.shrink();
     return IgnorePointer(
       child: Align(
@@ -631,7 +631,7 @@ class _GameScreenState extends State<GameScreen>
 
   Widget _pauseMenu() => _panel([
     const Text(
-      'Durduruldu',
+      'Paused',
       style: TextStyle(
         color: Colors.white,
         fontSize: 24,
@@ -641,12 +641,12 @@ class _GameScreenState extends State<GameScreen>
     const SizedBox(height: 20),
     FilledButton(
       onPressed: () => setState(() => paused = false),
-      child: const Text('Devam'),
+      child: const Text('Resume'),
     ),
     const SizedBox(height: 8),
     OutlinedButton(
       onPressed: () => Navigator.of(context).pop(),
-      child: const Text('Ana menü'),
+      child: const Text('Main menu'),
     ),
   ]);
 
@@ -654,7 +654,7 @@ class _GameScreenState extends State<GameScreen>
     final won = s.phase == Phase.won;
     return _panel([
       Text(
-        won ? 'Pac-Man yakalandı!' : 'Pac-Man kaçtı…',
+        won ? 'Pac-Man caught!' : 'Pac-Man got away…',
         style: TextStyle(
           color: won ? s.player.color : pacYellow,
           fontSize: 26,
@@ -664,14 +664,14 @@ class _GameScreenState extends State<GameScreen>
       const SizedBox(height: 10),
       Text(
         won
-            ? 'Senin yakaladıkların: ${s.playerCatches} / ${s.teamCatches}\nSüre: ${s.time.toStringAsFixed(0)} sn'
-            : 'Bütün yemleri bitirdi.\nKalan canı: ${s.pacLives}',
+            ? 'Your catches: ${s.playerCatches} / ${s.teamCatches}\nTime: ${s.time.toStringAsFixed(0)} s'
+            : 'He ate all the pellets.\nLives left: ${s.pacLives}',
         textAlign: TextAlign.center,
         style: const TextStyle(color: Colors.white70, fontSize: 16),
       ),
       const SizedBox(height: 8),
       Text(
-        'Bu bölümde kazandığın: ${s.coinsEarned} 🪙   Toplam: ${profile.coins} 🪙',
+        'Earned this level: ${s.coinsEarned} 🪙   Total: ${profile.coins} 🪙',
         textAlign: TextAlign.center,
         style: const TextStyle(color: pacYellow, fontSize: 14),
       ),
@@ -690,17 +690,17 @@ class _GameScreenState extends State<GameScreen>
       if (won)
         FilledButton(
           onPressed: () => setState(() => _newGame(s.level + 1)),
-          child: Text('Sonraki seviye (${s.level + 1})'),
+          child: Text('Next level (${s.level + 1})'),
         ),
       if (!won)
         FilledButton(
           onPressed: () => setState(() => _newGame(s.level)),
-          child: const Text('Tekrar dene'),
+          child: const Text('Try again'),
         ),
       const SizedBox(height: 8),
       OutlinedButton(
         onPressed: () => Navigator.of(context).pop(),
-        child: const Text('Ana menü'),
+        child: const Text('Main menu'),
       ),
     ]);
   }

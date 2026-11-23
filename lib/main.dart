@@ -147,26 +147,26 @@ class _MenuScreenState extends State<MenuScreen> {
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Bu sefer hayalet sensin. Pac-Man yemleri bitirmeden onu yakala.',
+                    'This time you\'re the ghost. Catch Pac-Man before he eats all the pellets.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.white70, fontSize: 15),
                   ),
                   const SizedBox(height: 28),
                   _ModeButton(
                     title: 'EASY',
-                    subtitle: 'Klasik üstten görünüm. Her şey ekranda.',
+                    subtitle: 'Classic top-down view. Everything is on screen.',
                     color: const Color(0xFF00E5FF),
                     onTap: () => _start(context, Difficulty.easy),
                   ),
                   _ModeButton(
                     title: 'HARD',
-                    subtitle: 'Hayaletin gözünden 3D. Pac-Man\'in ışık huzmesi duvarların üstünden görünür, yedikçe kalp gibi atar. Yaklaştıkça "waka" sesi artar.',
+                    subtitle: '3D through the ghost\'s eyes. Pac-Man\'s light beam shows above the walls and beats like a heart as he eats. The "waka" gets louder as you close in.',
                     color: const Color(0xFFFFB851),
                     onTap: () => _start(context, Difficulty.hard),
                   ),
                   _ModeButton(
                     title: 'HELL',
-                    subtitle: '3D, görsel ipucu yok: ışık yok, haritada sadece duvarlar ve sen. Sadece kulağına güven.',
+                    subtitle: '3D, no visual hints: no light, only the walls and you on the map. Trust your ears alone.',
                     color: const Color(0xFFFF2020),
                     onTap: () => _start(context, Difficulty.hell),
                   ),
@@ -202,7 +202,7 @@ class _MenuScreenState extends State<MenuScreen> {
                         ),
                         icon: const Text('📖', style: TextStyle(fontSize: 18)),
                         label: const Text(
-                          'NASIL OYNANIR',
+                          'HOW TO PLAY',
                           style: _menuButtonText,
                         ),
                       ),
@@ -210,9 +210,9 @@ class _MenuScreenState extends State<MenuScreen> {
                   ),
                   const SizedBox(height: 18),
                   const Text(
-                    'Kontroller — Easy: kaydır / ok tuşları.\n'
-                    '3D: sola-sağa kaydır = sonraki kavşakta dön, aşağı = geri dön.\n'
-                    'Klavye: ← → dön, ↓ geri, Boşluk zıpla (Hell), 1-4 paket, M harita, P duraklat.',
+                    'Controls — Easy: swipe / arrow keys.\n'
+                    '3D: swipe left/right = turn at the next junction, down = turn back.\n'
+                    'Keyboard: ← → turn, ↓ back, Space jump (Hell), 1-4 packs, M map, P pause.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.white38, fontSize: 12),
                   ),
