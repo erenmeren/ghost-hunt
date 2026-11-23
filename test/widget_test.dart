@@ -63,10 +63,10 @@ void main() {
         await tester.pump(const Duration(milliseconds: 33));
       }
       if (d != Difficulty.easy) {
-        expect(find.text('Haritayı kapat'), findsOneWidget);
-        await tester.tap(find.text('Haritayı kapat'));
+        expect(find.text('Hide map'), findsOneWidget);
+        await tester.tap(find.text('Hide map'));
         await tester.pump();
-        expect(find.text('Harita'), findsOneWidget);
+        expect(find.text('Map'), findsOneWidget);
       }
       expect(tester.takeException(), isNull);
     });

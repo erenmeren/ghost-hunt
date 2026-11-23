@@ -42,28 +42,28 @@ class _ShopScreenState extends State<ShopScreen> {
             padding: const EdgeInsets.all(16),
             children: [
               _header(
-                'Paketler',
-                'Bölüm içinde kullanılır, kullanınca biter. '
-                    'Bir bölümde en fazla ${p.slotsPerLevel} paket kullanabilirsin.',
+                'Packs',
+                'Used during a level, gone once used. '
+                    'You can use up to ${p.slotsPerLevel} packs per level.',
               ),
               for (final u in PowerUp.values)
                 _ItemTile(
                   emoji: u.emoji,
                   title: u.title,
                   description: u.description,
-                  owned: 'Elinde: ${p.packsOf(u)}',
+                  owned: 'Owned: ${p.packsOf(u)}',
                   price: u.price,
                   enabled: p.canBuyPack(u),
                   onBuy: () => setState(() => p.buyPack(u)),
                 ),
               const SizedBox(height: 18),
-              _header('Kalıcı yükseltmeler', 'Bir kere alınır, hep geçerli.'),
+              _header('Permanent upgrades', 'Buy once, keep forever.'),
               for (final u in Upgrade.values)
                 _ItemTile(
                   emoji: u.emoji,
                   title: u.title,
                   description: u.description,
-                  owned: 'Seviye ${p.levelOf(u)}/${u.maxLevel}',
+                  owned: 'Level ${p.levelOf(u)}/${u.maxLevel}',
                   price: p.upgradePrice(u),
                   enabled:
                       p.upgradePrice(u) != null &&
@@ -72,8 +72,8 @@ class _ShopScreenState extends State<ShopScreen> {
                 ),
               const SizedBox(height: 18),
               const Text(
-                'Para kazanmak için Pac-Man\'i yakala. Ne kadar erken yakalarsan '
-                'o kadar çok para. Hard ×2, Hell ×4.',
+                'Catch Pac-Man to earn coins. The earlier you catch him, '
+                'the more you get. Hard ×2, Hell ×4.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white38, fontSize: 12),
               ),

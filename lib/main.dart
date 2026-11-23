@@ -7,6 +7,7 @@ import 'game/economy.dart';
 import 'game/game_state.dart';
 import 'profile_store.dart';
 import 'ui/game_screen.dart';
+import 'ui/how_to_play_screen.dart';
 import 'ui/shop_screen.dart';
 import 'ui/sprites.dart';
 import 'ui/top_down_painter.dart';
@@ -87,6 +88,16 @@ class MenuScreen extends StatefulWidget {
 class _MenuScreenState extends State<MenuScreen> {
   Sfx get sfx => widget.sfx;
 
+  static final _menuButtonStyle = OutlinedButton.styleFrom(
+    foregroundColor: pacYellow,
+    side: const BorderSide(color: pacYellow),
+    padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+  );
+  static const _menuButtonText = TextStyle(
+    fontWeight: FontWeight.w900,
+    fontSize: 16,
+  );
+
   Future<void> _start(BuildContext context, Difficulty d) async {
     // Audio may only start after a user gesture on the web.
     await sfx.init();
@@ -128,65 +139,80 @@ class _MenuScreenState extends State<MenuScreen> {
                       fontSize: 40,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 3,
+                      shadows: [
+                        Shadow(color: Color(0x99FFE000), blurRadius: 12),
+                        Shadow(color: Color(0x44FFE000), blurRadius: 28),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Bu sefer hayalet sensin. Pac-Man yemleri bitirmeden onu yakala.',
+                    'This time you\'re the ghost. Catch Pac-Man before he eats all the pellets.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.white70, fontSize: 15),
                   ),
                   const SizedBox(height: 28),
                   _ModeButton(
                     title: 'EASY',
-                    subtitle: 'Klasik üstten görünüm. Her şey ekranda.',
+                    subtitle: 'Classic top-down view. Everything is on screen.',
                     color: const Color(0xFF00E5FF),
                     onTap: () => _start(context, Difficulty.easy),
                   ),
                   _ModeButton(
                     title: 'HARD',
-                    subtitle: 'Hayaletin gözünden 3D. Pac-Man\'in ışık huzmesi duvarların üstünden görünür, yedikçe kalp gibi atar. Yaklaştıkça "waka" sesi artar.',
+                    subtitle: '3D through the ghost\'s eyes. Pac-Man\'s light beam shows above the walls and beats like a heart as he eats. The "waka" gets louder as you close in.',
                     color: const Color(0xFFFFB851),
                     onTap: () => _start(context, Difficulty.hard),
                   ),
                   _ModeButton(
                     title: 'HELL',
-                    subtitle: '3D, görsel ipucu yok: ışık yok, haritada sadece duvarlar ve sen. Sadece kulağına güven.',
+                    subtitle: '3D, no visual hints: no light, only the walls and you on the map. Trust your ears alone.',
                     color: const Color(0xFFFF2020),
                     onTap: () => _start(context, Difficulty.hell),
                   ),
                   const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: pacYellow,
-                      side: const BorderSide(color: pacYellow),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 22,
-                        vertical: 14,
-                      ),
-                    ),
-                    onPressed: () async {
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => ShopScreen(profile: widget.profile),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 12,
+                    runSpacing: 10,
+                    children: [
+                      OutlinedButton.icon(
+                        style: _menuButtonStyle,
+                        onPressed: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  ShopScreen(profile: widget.profile),
+                            ),
+                          );
+                          if (mounted) setState(() {});
+                        },
+                        icon: const Text('🛒', style: TextStyle(fontSize: 18)),
+                        label: Text(
+                          'SHOP   🪙 ${widget.profile.coins}',
+                          style: _menuButtonText,
                         ),
-                      );
-                      if (mounted) setState(() {});
-                    },
-                    icon: const Text('🛒', style: TextStyle(fontSize: 18)),
-                    label: Text(
-                      'SHOP   🪙 ${widget.profile.coins}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 16,
                       ),
-                    ),
+                      OutlinedButton.icon(
+                        style: _menuButtonStyle,
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const HowToPlayScreen(),
+                          ),
+                        ),
+                        icon: const Text('📖', style: TextStyle(fontSize: 18)),
+                        label: const Text(
+                          'HOW TO PLAY',
+                          style: _menuButtonText,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 18),
                   const Text(
-                    'Kontroller — Easy: kaydır / ok tuşları.\n'
-                    '3D: sola-sağa kaydır = sonraki kavşakta dön, aşağı = geri dön.\n'
-                    'Klavye: ← → dön, ↓ geri, Boşluk zıpla (Hell), 1-4 paket, M harita, P duraklat.',
+                    'Controls — Easy: swipe / arrow keys.\n'
+                    '3D: swipe left/right = turn at the next junction, down = turn back.\n'
+                    'Keyboard: ← → turn, ↓ back, Space jump (Hell), 1-4 packs, M map, P pause.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.white38, fontSize: 12),
                   ),

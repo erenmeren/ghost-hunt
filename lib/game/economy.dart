@@ -15,19 +15,20 @@ extension PowerUpInfo on PowerUp {
   };
 
   String get title => switch (this) {
-    PowerUp.speed => 'Hız paketi',
-    PowerUp.invisible => 'Görünmezlik',
-    PowerUp.phase => 'Duvardan geçme',
+    PowerUp.speed => 'Speed pack',
+    PowerUp.invisible => 'Invisibility',
+    PowerUp.phase => 'Wall pass',
     PowerUp.sonar => 'Sonar',
   };
 
   String get description => switch (this) {
-    PowerUp.speed => '5 saniye %40 daha hızlı gidersin.',
-    PowerUp.invisible =>
-      '5 saniye Pac-Man seni görmez, senden kaçmaz. Yakalarsan yine sayılır.',
+    PowerUp.speed => 'Move 40% faster for 5 seconds.',
+    PowerUp.invisible => 'For 5 seconds Pac-Man can\'t see you or run from you. Catches still count.',
     PowerUp.phase =>
-      '3 saniye duvarların içinden geçebilirsin. Dış duvarlar hariç.',
-    PowerUp.sonar => '2 saniye Pac-Man\'in ışığını ve haritadaki yerini görürsün. Hell\'in tek ipucu.',
+      'Pass through walls for 3 seconds, except the outer walls.',
+    PowerUp.sonar =>
+      'See Pac-Man\'s light and his spot on the map for 2 seconds. '
+          'Hell\'s only visual hint.',
   };
 
   int get price => switch (this) {
@@ -57,15 +58,15 @@ extension UpgradeInfo on Upgrade {
   };
 
   String get title => switch (this) {
-    Upgrade.baseSpeed => 'Temel hız',
-    Upgrade.hearing => 'Keskin kulak',
-    Upgrade.slots => 'Büyük çanta',
+    Upgrade.baseSpeed => 'Base speed',
+    Upgrade.hearing => 'Sharp ears',
+    Upgrade.slots => 'Big bag',
   };
 
   String get description => switch (this) {
-    Upgrade.baseSpeed => 'Her seviyesi kalıcı olarak %4 daha hızlı.',
-    Upgrade.hearing => 'Pac-Man\'i her seviyede 4 kare daha uzaktan duyarsın.',
-    Upgrade.slots => 'Bir bölümde 1 paket daha kullanabilirsin.',
+    Upgrade.baseSpeed => 'Each upgrade level makes you 4% faster, permanently.',
+    Upgrade.hearing => 'Hear Pac-Man from 4 tiles farther per upgrade level.',
+    Upgrade.slots => 'Use 1 more pack per level.',
   };
 
   int get maxLevel => 3;
