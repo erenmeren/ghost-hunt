@@ -147,7 +147,7 @@ class _MenuScreenState extends State<MenuScreen> {
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'This time you\'re the ghost. Catch the runner before he eats all the pellets.',
+                    'This time you\'re the ghost. Catch Pac-Man before he eats all the pellets.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.white70, fontSize: 15),
                   ),
@@ -160,7 +160,7 @@ class _MenuScreenState extends State<MenuScreen> {
                   ),
                   _ModeButton(
                     title: 'HARD',
-                    subtitle: '3D through the ghost\'s eyes. The runner\'s light beam shows above the walls and beats like a heart as he eats. The "waka" gets louder as you close in.',
+                    subtitle: '3D through the ghost\'s eyes. Pac-Man\'s light beam shows above the walls and beats like a heart as he eats. The "waka" gets louder as you close in.',
                     color: const Color(0xFFFFB851),
                     onTap: () => _start(context, Difficulty.hard),
                   ),
@@ -284,7 +284,7 @@ class _TitleArt extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final cy = size.height / 2;
-    drawRunner(canvas, Offset(size.width * 0.2, cy), 30, 0.7);
+    drawPacman(canvas, Offset(size.width * 0.2, cy), 30, 0.7);
     drawGhost(
       canvas,
       Offset(size.width * 0.62, cy),
@@ -296,7 +296,7 @@ class _TitleArt extends CustomPainter {
       canvas,
       Offset(size.width * 0.9, cy),
       22,
-      color: const Color(0xFFB6FF4A),
+      color: const Color(0xFFFF2020),
       lookX: -1,
     );
   }

@@ -94,7 +94,7 @@ void main() {
         final level = View3D();
         final seen = await shot(
           scene,
-          s..fruit = Fruit(FruitType.pumpkin, m.fruitTile, 9),
+          s..fruit = Fruit(FruitType.melon, m.fruitTile, 9),
           Camera(m.xOf(m.fruitTile) - 2.5, m.yOf(m.fruitTile) + 0.5, 0),
           level,
           '3d_${d.name}_fruit',

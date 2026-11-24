@@ -1,25 +1,16 @@
-/// Bonus items. Only the runner can eat them; ghosts pass straight over.
-enum FruitType {
-  plum,
-  lemon,
-  grapes,
-  kiwi,
-  pumpkin,
-  pineapple,
-  dragonfruit,
-  starfruit,
-}
+/// Bonus items. Only Pac-Man can eat them; ghosts pass straight over.
+enum FruitType { cherry, strawberry, orange, apple, melon, grapes, bell, key }
 
-/// Which bonus item a level offers.
+/// Which bonus item a level offers (the classic arcade order).
 FruitType fruitForLevel(int level) => switch (level) {
-  <= 1 => FruitType.plum,
-  2 => FruitType.lemon,
-  <= 4 => FruitType.grapes,
-  <= 6 => FruitType.kiwi,
-  <= 8 => FruitType.pumpkin,
-  <= 10 => FruitType.pineapple,
-  <= 12 => FruitType.dragonfruit,
-  _ => FruitType.starfruit,
+  <= 1 => FruitType.cherry,
+  2 => FruitType.strawberry,
+  <= 4 => FruitType.orange,
+  <= 6 => FruitType.apple,
+  <= 8 => FruitType.melon,
+  <= 10 => FruitType.grapes,
+  <= 12 => FruitType.bell,
+  _ => FruitType.key,
 };
 
 /// A bonus item lying in the maze.

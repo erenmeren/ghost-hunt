@@ -5,96 +5,26 @@ import '../game/fruit.dart';
 
 const pacYellow = Color(0xFFFFE000);
 const frightBlue = Color(0xFF2121FF);
+const pelletColor = Color(0xFFFFB8AE);
 
-/// The runner: a walking lantern. [flare] (0..1) makes the flame jump while
-/// he eats, [facing] is where his eyes look and the flame leans away from.
-void drawRunner(
+/// Pac-Man as a circle with a mouth. [facing] is the mouth direction.
+void drawPacman(
   Canvas c,
   Offset center,
   double r,
-  double flare, {
+  double mouthOpen, {
   double facing = 0,
   double alpha = 1,
 }) {
-  final brass = Paint()
-    ..color = const Color(0xFFC07A2C).withValues(alpha: alpha);
-  final dark = Paint()
-    ..color = const Color(0xFF2A1608).withValues(alpha: alpha);
-  final lx = math.cos(facing), ly = math.sin(facing);
-  Rect box(double l, double t, double w, double h) =>
-      Rect.fromLTWH(center.dx + l * r, center.dy + t * r, w * r, h * r);
-  Offset at(double x, double y) => Offset(center.dx + x * r, center.dy + y * r);
-
-  // Glow.
-  c.drawCircle(
-    center,
-    r * (1.15 + 0.15 * flare),
-    Paint()..color = pacYellow.withValues(alpha: 0.16 * alpha),
-  );
-  // Feet take turns.
-  final step = flare * 0.14;
-  c.drawRect(box(-0.5, 0.72, 0.34, 0.28 - step), brass);
-  c.drawRect(box(0.16, 0.72, 0.34, 0.14 + step), brass);
-  // Handle.
+  final m = 0.05 + mouthOpen * 0.75; // half-angle of the mouth
+  final paint = Paint()..color = pacYellow.withValues(alpha: alpha);
   c.drawArc(
-    box(-0.36, -1.08, 0.72, 0.66),
-    math.pi,
-    math.pi,
-    false,
-    Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = r * 0.14
-      ..color = brass.color,
+    Rect.fromCircle(center: center, radius: r),
+    facing + m,
+    2 * math.pi - 2 * m,
+    true,
+    paint,
   );
-  // Glass with the flame inside.
-  c.drawRRect(
-    RRect.fromRectAndRadius(
-      box(-0.72, -0.5, 1.44, 1.14),
-      Radius.circular(r * 0.3),
-    ),
-    Paint()
-      ..color = Color.lerp(
-        const Color(0xFFFF9E2C),
-        pacYellow,
-        flare,
-      )!.withValues(alpha: alpha),
-  );
-  final tip = at(-lx * 0.22, -0.28 - 0.18 * flare);
-  final flame = Path()
-    ..moveTo(tip.dx, tip.dy)
-    ..quadraticBezierTo(
-      at(0.5, 0.1).dx,
-      at(0, 0.05).dy,
-      at(0, 0.56).dx,
-      at(0, 0.56).dy,
-    )
-    ..quadraticBezierTo(at(-0.5, 0.1).dx, at(0, 0.05).dy, tip.dx, tip.dy);
-  c.drawPath(
-    flame,
-    Paint()..color = const Color(0xFFFFF6C8).withValues(alpha: alpha),
-  );
-  // Roof and base.
-  c.drawPath(
-    Path()..addPolygon([
-      at(-0.4, -0.78),
-      at(0.4, -0.78),
-      at(0.86, -0.42),
-      at(-0.86, -0.42),
-    ], true),
-    brass,
-  );
-  c.drawRect(box(-0.8, 0.56, 1.6, 0.2), brass);
-  // Eyes on the glass.
-  for (final side in [-1.0, 1.0]) {
-    c.drawOval(
-      Rect.fromCenter(
-        center: at(side * 0.28 + lx * 0.22, 0.06 + ly * 0.16),
-        width: r * 0.2,
-        height: r * 0.34,
-      ),
-      dark,
-    );
-  }
 }
 
 /// Pulse of the player's ghost: 0..1..0 twice a second.
@@ -114,8 +44,8 @@ Color vividColor(Color c, double pulse) {
   )!;
 }
 
-/// Soft light behind the player's ghost. It fades out to nothing, so there is
-/// no outline.
+/// Strong neon light around the player's ghost: a wide halo that pulses
+/// at 2 Hz and fades out to nothing (no ring or marker).
 void drawPlayerGlow(
   Canvas c,
   Offset center,
@@ -123,8 +53,8 @@ void drawPlayerGlow(
   Color color,
   double pulse,
 ) {
-  final reach = r * (1.6 + 0.35 * pulse);
-  final strength = 0.35 + 0.5 * pulse;
+  final reach = r * (2.1 + 0.6 * pulse);
+  final strength = 0.55 + 0.45 * pulse;
   c.drawCircle(
     center,
     reach,
@@ -134,17 +64,17 @@ void drawPlayerGlow(
         reach,
         [
           color.withValues(alpha: strength),
-          color.withValues(alpha: strength * 0.5),
+          color.withValues(alpha: strength * 0.55),
+          color.withValues(alpha: strength * 0.2),
           color.withValues(alpha: 0),
         ],
-        const [0, 0.5, 1],
+        const [0.25, 0.5, 0.75, 1],
       ),
   );
 }
 
-/// A wisp: hooded teardrop whose tip and tail trail behind its movement.
-/// Fills a square of side 2r around [center]. The player's ghost passes
-/// [pulse] (0..1) to burn brighter than the others and glow.
+/// Arcade style ghost filling a square of side 2r around [center]. Only the
+/// player's ghost passes [pulse] (0..1): it is drawn as a neon sign.
 void drawGhost(
   Canvas c,
   Offset center,
@@ -159,197 +89,243 @@ void drawGhost(
   double alpha = 1,
   double? pulse,
 }) {
-  Offset at(double x, double y) => Offset(center.dx + x * r, center.dy + y * r);
-  final sway = math.sin(wobble * 1.6) * 0.14;
-  var ink = frightened ? frightBlue : color;
-  if (frightened && flashing) ink = const Color(0xFFFFFFFF);
+  final left = center.dx - r, right = center.dx + r;
+  final top = center.dy - r, bottom = center.dy + r;
   if (pulse != null) {
-    // The glow keeps the ghost's own colour, frightened or not.
+    // Neon: the light keeps the ghost's own colour, frightened or not.
     drawPlayerGlow(c, center, r, vividColor(color, 0), pulse);
-    ink = vividColor(ink, pulse);
   }
-
   if (!eyesOnly) {
-    final tip = at(-0.5 * lookX + sway, -1.05);
-    final tail = at(-0.75 * lookX - sway * 1.6, 1.02);
-    Path cubic(Path p, Offset a, Offset b, Offset to) =>
-        p..cubicTo(a.dx, a.dy, b.dx, b.dy, to.dx, to.dy);
-    final body = Path()..moveTo(tip.dx, tip.dy);
-    cubic(body, at(0.1, -0.92), at(0.84, -0.72), at(0.84, -0.02));
-    cubic(body, at(0.84, 0.58), at(0.4, 0.66), tail);
-    cubic(body, at(-0.4, 0.66), at(-0.84, 0.58), at(-0.84, -0.02));
-    cubic(body, at(-0.84, -0.72), at(-0.1, -0.92), tip);
-    body.close();
-    c.drawPath(body, Paint()..color = ink.withValues(alpha: alpha));
-    // Two drifting sparks for arms.
-    final spark = Paint()..color = ink.withValues(alpha: alpha * 0.85);
-    c.drawCircle(at(-0.9, 0.46 + sway), r * 0.13, spark);
-    c.drawCircle(at(0.9, 0.46 - sway), r * 0.13, spark);
-  }
-
-  final hollow = Paint()
-    ..color = (eyesOnly ? color : const Color(0xFF120A1E)).withValues(
-      alpha: alpha,
-    );
-  final fx = lookX * 0.2, fy = -0.12 + lookY * 0.18;
-  if (frightened && !eyesOnly) {
-    // Crossed-out eyes and a small round gasp.
-    final pen = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = math.max(1, r * 0.12)
-      ..color = (flashing ? const Color(0xFF120A1E) : const Color(0xFFE9F3C8))
-          .withValues(alpha: alpha);
-    for (final side in [-0.36, 0.36]) {
-      c.drawLine(at(side - 0.16, -0.28), at(side + 0.16, 0.04), pen);
-      c.drawLine(at(side + 0.16, -0.28), at(side - 0.16, 0.04), pen);
+    final body = Path()
+      ..moveTo(left, bottom)
+      ..lineTo(left, top + r)
+      ..arcToPoint(
+        Offset(right, top + r),
+        radius: Radius.circular(r),
+        clockwise: true,
+      )
+      ..lineTo(right, bottom);
+    // Wavy skirt.
+    const bumps = 4;
+    final bw = 2 * r / bumps;
+    final phase = (wobble * 2).floor().isEven ? 0.0 : bw / 2;
+    for (var i = 0; i < bumps; i++) {
+      final x0 = right - i * bw - phase;
+      body.lineTo(math.max(left, x0 - bw / 2), bottom - r * 0.22);
+      body.lineTo(math.max(left, x0 - bw), bottom);
     }
-    c.drawCircle(at(0, 0.32), r * 0.12, pen);
-    return;
+    body
+      ..lineTo(left, bottom)
+      ..close();
+    var bodyColor = frightened ? frightBlue : color;
+    if (frightened && flashing) bodyColor = const Color(0xFFFFFFFF);
+    if (pulse != null) bodyColor = vividColor(bodyColor, pulse);
+    c.drawPath(body, Paint()..color = bodyColor.withValues(alpha: alpha));
+    if (pulse != null) {
+      // Thin bright glowing outline, like a neon tube.
+      final tube = vividColor(color, 1);
+      c.drawPath(
+        body,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = r * 0.3
+          ..color = tube.withValues(alpha: alpha * (0.5 + 0.4 * pulse))
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.28),
+      );
+      c.drawPath(
+        body,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(1.2, r * 0.07)
+          ..color = Color.lerp(
+            tube,
+            const Color(0xFFFFFFFF),
+            0.55,
+          )!.withValues(alpha: alpha),
+      );
+    }
+    if (frightened) {
+      final face = Paint()
+        ..color = (flashing ? const Color(0xFFFF0000) : pelletColor).withValues(
+          alpha: alpha,
+        );
+      c.drawCircle(
+        Offset(center.dx - r * 0.35, center.dy - r * 0.2),
+        r * 0.13,
+        face,
+      );
+      c.drawCircle(
+        Offset(center.dx + r * 0.35, center.dy - r * 0.2),
+        r * 0.13,
+        face,
+      );
+      final mouth = Path()..moveTo(left + r * 0.25, center.dy + r * 0.35);
+      for (var i = 1; i <= 6; i++) {
+        mouth.lineTo(
+          left + r * 0.25 + i * r * 0.25,
+          center.dy + r * (i.isOdd ? 0.2 : 0.35),
+        );
+      }
+      c.drawPath(
+        mouth,
+        face
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(1, r * 0.08),
+      );
+      return;
+    }
   }
-  for (final side in [-1.0, 1.0]) {
-    // Slanted hollow eyes with a pinpoint of light.
-    final eye = at(side * 0.36 + fx, fy);
-    c.save();
-    c.translate(eye.dx, eye.dy);
-    c.rotate(side * 0.35);
+  final white = Paint()
+    ..color = const Color(0xFFFFFFFF).withValues(alpha: alpha);
+  final blue = Paint()
+    ..color = const Color(0xFF2121DE).withValues(alpha: alpha);
+  for (final s in [-1.0, 1.0]) {
+    final eye = Offset(center.dx + s * r * 0.38, center.dy - r * 0.18);
     c.drawOval(
-      Rect.fromCenter(center: Offset.zero, width: r * 0.36, height: r * 0.58),
-      hollow,
+      Rect.fromCenter(
+        center: eye.translate(lookX * r * 0.08, lookY * r * 0.08),
+        width: r * 0.55,
+        height: r * 0.68,
+      ),
+      white,
     );
-    c.restore();
     c.drawCircle(
-      eye.translate(lookX * r * 0.07, lookY * r * 0.12),
-      r * 0.09,
-      Paint()..color = const Color(0xFFFFFFFF).withValues(alpha: alpha),
+      eye.translate(lookX * r * 0.2, lookY * r * 0.2),
+      r * 0.15,
+      blue,
     );
   }
 }
 
 /// Pixel colours used by the fruit bitmaps.
 const _fruitInk = {
-  'p': Color(0xFF7B3FC4),
-  'P': Color(0xFFB98AF0),
-  'y': Color(0xFFF6D93B),
-  'Y': Color(0xFFFFF3A6),
-  'o': Color(0xFFF08A24),
-  'O': Color(0xFFC4600F),
-  'g': Color(0xFF3FA34D),
-  'G': Color(0xFF9BDB5A),
+  'r': Color(0xFFE5232B),
+  'R': Color(0xFFFF8A8A),
+  'd': Color(0xFF9E1018),
+  'g': Color(0xFF2EA64A),
+  'G': Color(0xFF8AE05A),
   'b': Color(0xFF7A4B24),
+  'o': Color(0xFFFF9A1F),
+  'O': Color(0xFFFFC866),
+  'y': Color(0xFFFFE000),
+  'Y': Color(0xFFFFF59A),
+  'p': Color(0xFF8B3FD0),
+  'P': Color(0xFFC79BFF),
+  'c': Color(0xFF3FD2E8),
   'w': Color(0xFFFFFFFF),
-  'm': Color(0xFFE83E8C),
   'k': Color(0xFF1C1320),
+  'm': Color(0xFFB8F0A0),
 };
 
 const _fruitPixels = {
-  FruitType.plum: [
-    '.....bb...',
-    '....bgg...',
-    '..ppppppp.',
-    '.pPPpppppp',
-    '.pPpppppppp',
-    '.pppppppppp',
-    '.pppppppppp',
-    '..pppppppp.',
-    '...pppppp..',
-    '....pppp...',
-  ],
-  FruitType.lemon: [
-    '.......gg..',
+  FruitType.cherry: [
     '......gg...',
-    '...yyyyy...',
-    '..yYYyyyy..',
-    '.yYYyyyyyy.',
-    'yyYyyyyyyyy',
-    '.yyyyyyyyy.',
-    '..yyyyyyy..',
-    '...yyyyy...',
-    '.....y.....',
+    '.....g.gg..',
+    '....g...g..',
+    '...g....g..',
+    '..rrr..rrr.',
+    '.rRrrr.rRrr',
+    '.rrrrr.rrrr',
+    '.rrrdr.rrrd',
+    '..rdd...rdd',
+    '...........',
+  ],
+  FruitType.strawberry: [
+    '....ggg....',
+    '..ggGgGgg..',
+    '.rrrrgrrrr.',
+    '.rRrrrrRrr.',
+    '.rrYrrrYrr.',
+    '..rrrYrrr..',
+    '..rYrrrYr..',
+    '...rrrrr...',
+    '....rYr....',
+    '.....r.....',
+  ],
+  FruitType.orange: [
+    '.....gg....',
+    '....gGg....',
+    '...ooooo...',
+    '..oOOoooo..',
+    '.oOoooooOo.',
+    '.ooooooooo.',
+    '.ooooooooo.',
+    '.ooooooooo.',
+    '..ooooooo..',
+    '...ooooo...',
+  ],
+  FruitType.apple: [
+    '.....b.g...',
+    '....b.gg...',
+    '..rrr.rrr..',
+    '.rRRrrrrrr.',
+    '.rRrrrrrrr.',
+    'rrrrrrrrrrr',
+    'rrrrrrrrrrr',
+    '.rrrrrrrrr.',
+    '.rrrr.rrrr.',
+    '..rr...rr..',
+  ],
+  FruitType.melon: [
+    '.....g.....',
+    '....gg.....',
+    '..ggGggGg..',
+    '.gGmgGmgGg.',
+    '.ggGgmgGgg.',
+    'gGmgGgGgmGg',
+    'gmgGgmgGgGg',
+    '.gGgmgGmgg.',
+    '..ggGgGgg..',
+    '...ggggg...',
   ],
   FruitType.grapes: [
     '.....b.....',
     '...ggbgg...',
-    '.PP.PP.PP..',
+    '.pP.pP.pP..',
     '.pp.pp.pp..',
-    '...........',
-    '..PP.PP....',
+    '..pP.pP.pp.',
     '..pp.pp....',
-    '...........',
-    '....PP.....',
+    '...pP.pP...',
+    '...pp.pp...',
+    '....pP.....',
     '....pp.....',
   ],
-  FruitType.kiwi: [
-    '...bbbbb...',
-    '..bGGGGGb..',
-    '.bGGkGkGGb.',
-    'bGGkwwwkGGb',
-    'bGGGwwwGGGb',
-    'bGkwwwwwkGb',
-    'bGGGwwwGGGb',
-    '.bGkGGGkGb.',
-    '..bGGGGGb..',
-    '...bbbbb...',
+  FruitType.bell: [
+    '....yyy....',
+    '...yYYyy...',
+    '..yYyyyyy..',
+    '..yYyyyyy..',
+    '..yYyyyyy..',
+    '.yYyyyyyyy.',
+    '.yyyyyyyyy.',
+    'yyyyyyyyyyy',
+    'yyyyyyyyyyy',
+    '....cccc...',
   ],
-  FruitType.pumpkin: [
-    '.....gg....',
-    '.....g.....',
-    '..oooOooo..',
-    '.ooOooOooo.',
-    'ooOoooOoooo',
-    'ooOoooOoooo',
-    'ooOoooOoooo',
-    'ooOoooOoooo',
-    '.oOoooOooo.',
-    '..oooOooo..',
-  ],
-  FruitType.pineapple: [
-    '..g..g..g..',
-    '...ggggg...',
-    '....ggg....',
-    '...yOyOy...',
-    '..yOyOyOy..',
-    '..OyOyOyO..',
-    '..yOyOyOy..',
-    '..OyOyOyO..',
-    '..yOyOyOy..',
-    '...yOyOy...',
-  ],
-  FruitType.dragonfruit: [
-    '.G..mm..G..',
-    '..GmmmmG...',
-    '.mmwwwwmm..',
-    'Gmwkwwwkwm.',
-    '.mwwwkwwwmG',
-    '.mwkwwwkwm.',
-    'GmwwwkwwwmG',
-    '.mmwwwwmm..',
-    '..GmmmmG...',
-    '....mm.....',
-  ],
-  FruitType.starfruit: [
-    '.....y.....',
-    '....yYy....',
-    '....yYy....',
-    'yyyyYYYyyyy',
-    '.yYYYYYYYy.',
-    '..yYYYYYy..',
-    '..yYYYYYy..',
-    '.yYYyyyYYy.',
-    '.yYy...yYy.',
-    'yy.......yy',
+  FruitType.key: [
+    '...ccccc...',
+    '..cc...cc..',
+    '..c.....c..',
+    '..cc...cc..',
+    '...ccccc...',
+    '.....c.....',
+    '.....cc....',
+    '.....c.....',
+    '.....cc....',
+    '.....c.....',
   ],
 };
 
 /// Glow colour of a fruit in the 3D views and on the minimap.
 Color fruitColor(FruitType t) => switch (t) {
-  FruitType.plum => _fruitInk['p']!,
-  FruitType.lemon => _fruitInk['y']!,
-  FruitType.grapes => _fruitInk['P']!,
-  FruitType.kiwi => _fruitInk['G']!,
-  FruitType.pumpkin => _fruitInk['o']!,
-  FruitType.pineapple => const Color(0xFFE5B52A),
-  FruitType.dragonfruit => _fruitInk['m']!,
-  FruitType.starfruit => _fruitInk['Y']!,
+  FruitType.cherry => _fruitInk['r']!,
+  FruitType.strawberry => const Color(0xFFFF4060),
+  FruitType.orange => _fruitInk['o']!,
+  FruitType.apple => _fruitInk['r']!,
+  FruitType.melon => _fruitInk['G']!,
+  FruitType.grapes => _fruitInk['p']!,
+  FruitType.bell => _fruitInk['y']!,
+  FruitType.key => _fruitInk['c']!,
 };
 
 /// Pixel-art fruit filling a square of side 2r around [center].

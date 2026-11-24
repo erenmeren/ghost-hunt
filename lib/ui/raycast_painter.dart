@@ -165,7 +165,7 @@ class RaycastPainter extends CustomPainter {
     int col(double sx) => (sx / strip).floor().clamp(0, n - 1);
 
     // Pellets close by (cheap: only within fog range).
-    final pelletPaint = Paint()..color = wispColor;
+    final pelletPaint = Paint()..color = pelletColor;
     final blink = (s.clock * 3).floor().isEven;
     final r0 = _fogDist.ceil();
     for (
@@ -188,7 +188,7 @@ class RaycastPainter extends CustomPainter {
         if (zbuf[col(sx)] < ty) continue;
         final scale = h / ty;
         final fog = (1 - ty / _fogDist).clamp(0.1, 1.0);
-        pelletPaint.color = wispColor.withValues(alpha: fog);
+        pelletPaint.color = pelletColor.withValues(alpha: fog);
         canvas.drawCircle(
           Offset(sx, horizon + scale * 0.2),
           scale * (t == Tile.power ? 0.1 : 0.03),
@@ -324,7 +324,7 @@ class RaycastPainter extends CustomPainter {
           // He looks left/right on screen depending on his heading.
           final rel = s.pac.dir.angle - cam.angle;
           final facing = math.sin(rel) >= 0 ? 0.0 : math.pi;
-          drawRunner(
+          drawPacman(
             c,
             Offset(sx, horizon + scale * 0.15),
             scale * 0.33,

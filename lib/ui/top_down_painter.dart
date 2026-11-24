@@ -39,7 +39,7 @@ class TopDownPainter extends CustomPainter {
     canvas.restore();
 
     // Small square pellets; power pellets blink at 4 Hz during play.
-    final wisp = Paint()..color = wispColor;
+    final wisp = Paint()..color = pelletColor;
     final blink = (s.clock * 8).floor().isEven || s.phase != Phase.playing;
     final dots = Path();
     for (var i = 0; i < m.tiles.length; i++) {
@@ -93,12 +93,12 @@ class TopDownPainter extends CustomPainter {
       });
     }
 
-    // The runner.
+    // Pac-Man.
     if (s.phase != Phase.caught || (s.clock * 6).floor().isEven) {
       wrapped(
         s.pac.x(m),
         s.pac.y(m),
-        (c) => drawRunner(
+        (c) => drawPacman(
           canvas,
           c,
           cell * 0.75,

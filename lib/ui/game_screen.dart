@@ -70,7 +70,7 @@ class _GameScreenState extends State<GameScreen>
   Scene3D? scene;
 
   /// Hell only: a short hop that lets you peek over the walls for
-  /// the runner's glow. Needs the 3D renderer.
+  /// Pac-Man's glow. Needs the 3D renderer.
   static const jumpTime = 1.1, jumpCooldown = 4.0;
   double _jumpT = 0, _jumpCool = 0;
   bool get _canJump =>
@@ -199,7 +199,7 @@ class _GameScreenState extends State<GameScreen>
     }
   }
 
-  /// Waka gets louder the closer the runner is *through the corridors* and is
+  /// Waka gets louder the closer Pac-Man is *through the corridors* and is
   /// panned towards the side it is on.
   void _proximityWaka(int tile) {
     final m = s.maze;
@@ -420,7 +420,7 @@ class _GameScreenState extends State<GameScreen>
                       padding: EdgeInsets.only(left: 4),
                       child: CustomPaint(
                         size: Size(18, 18),
-                        painter: RunnerIcon(),
+                        painter: PacIcon(),
                       ),
                     ),
                 ],
@@ -499,7 +499,7 @@ class _GameScreenState extends State<GameScreen>
                     padding: EdgeInsets.only(right: size * 0.5),
                     child: CustomPaint(
                       size: Size.square(icon),
-                      painter: const RunnerIcon(),
+                      painter: const PacIcon(),
                     ),
                   ),
               ],
@@ -834,7 +834,7 @@ class _GameScreenState extends State<GameScreen>
     final won = s.phase == Phase.won;
     return _panel([
       Text(
-        won ? 'RUNNER CAUGHT!' : 'GAME OVER',
+        won ? 'PAC-MAN CAUGHT!' : 'GAME OVER',
         textAlign: TextAlign.center,
         style: pixelText(
           18,
@@ -845,7 +845,7 @@ class _GameScreenState extends State<GameScreen>
       Text(
         won
             ? 'Your catches: ${s.playerCatches} / ${s.teamCatches}\nTime: ${s.time.toStringAsFixed(0)} s'
-            : 'The runner ate all the pellets.\nLives left: ${s.pacLives}',
+            : 'Pac-Man ate all the pellets.\nLives left: ${s.pacLives}',
         textAlign: TextAlign.center,
         style: const TextStyle(color: Colors.white70, fontSize: 16),
       ),
@@ -896,12 +896,12 @@ class _GameScreenState extends State<GameScreen>
   }
 }
 
-/// One of the runner's lives in the HUD.
-class RunnerIcon extends CustomPainter {
-  const RunnerIcon();
+/// One of Pac-Man's lives in the HUD.
+class PacIcon extends CustomPainter {
+  const PacIcon();
 
   @override
-  void paint(Canvas canvas, Size size) => drawRunner(
+  void paint(Canvas canvas, Size size) => drawPacman(
     canvas,
     size.center(Offset.zero),
     size.width / 2,
@@ -910,7 +910,7 @@ class RunnerIcon extends CustomPainter {
   );
 
   @override
-  bool shouldRepaint(covariant RunnerIcon oldDelegate) => false;
+  bool shouldRepaint(covariant PacIcon oldDelegate) => false;
 }
 
 /// One eaten fruit in the HUD row.

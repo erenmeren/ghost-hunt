@@ -36,7 +36,7 @@ class MinimapPainter extends CustomPainter {
     canvas.restore();
 
     if (s.minimapShowsTrail) {
-      final wisp = Paint()..color = wispColor.withValues(alpha: 0.8);
+      final wisp = Paint()..color = pelletColor.withValues(alpha: 0.8);
       for (var i = 0; i < m.tiles.length; i++) {
         final t = m.tiles[i];
         if (t != Tile.pellet && t != Tile.power) continue;

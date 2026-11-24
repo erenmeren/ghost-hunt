@@ -115,7 +115,7 @@ void main() {
         'PressStart2P',
       );
       final lives = find.byWidgetPredicate(
-        (w) => w is CustomPaint && w.painter is RunnerIcon,
+        (w) => w is CustomPaint && w.painter is PacIcon,
       );
       expect(lives, findsNWidgets(3));
       // The pack buttons never cover the maze.

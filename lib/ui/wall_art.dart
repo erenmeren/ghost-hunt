@@ -3,11 +3,10 @@ import 'dart:ui';
 
 import '../game/maze.dart';
 
-/// Ghost Hunt's own arcade palette: violet neon on black, pale wisps, gold.
+/// Ghost Hunt's own arcade palette: violet neon on black, pellets, gold.
 const floorColor = Color(0xFF000000);
 const neonColor = Color(0xFF8B6CFF);
 const gateColor = Color(0xFFE8C46A);
-const wispColor = Color(0xFFE9F3C8);
 
 /// Static maze walls, traced once per maze in tile units. Draw them under a
 /// scaled canvas: nothing has to be rebuilt when the window is resized.

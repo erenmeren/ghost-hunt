@@ -4,8 +4,8 @@
 // The maze lives in a tiny texture (one texel per tile):
 //   r = 1 wall, g = 1 pellet / 0.5 power pellet, b = 1 ghost door.
 // Walls are traced with a 3D grid walk (exact, can look over walls when
-// the camera is high: jump / flight). The runner (a lantern), ghosts and
-// pellets are analytic spheres. The runner is the light source: walls,
+// the camera is high: jump / flight). Pac-Man, ghosts and
+// pellets are analytic spheres/cylinders. Pac-Man is the light source: walls,
 // floor and ghosts are lit by him, with shadows.
 
 #version 460 core
@@ -16,7 +16,7 @@ precision highp float;
 uniform vec2 uSize;   // canvas size in pixels
 uniform vec4 uCam;    // x, y, eye height, yaw
 uniform vec4 uView;   // pitch, time, mode (0 hard, 1 hell), heartbeat 0..1
-uniform vec4 uPac;    // x, y, facing angle, flame flare 0..1
+uniform vec4 uPac;    // x, y, facing angle, mouth open 0..1
 uniform vec4 uPacFx;  // beam 0/1, frightened 0/1, pac visible 0/1, zoom
 uniform vec4 uG0;     // ghost: x, y, facing angle, state (0 none, 1 body, 2 eyes)
 uniform vec4 uC0;     // ghost colour rgb, flash 0/1
@@ -61,6 +61,16 @@ float sphere(vec3 ro, vec3 rd, vec3 c, float r) {
   float t = -b - h;
   if (t > 0.001) return t;
   return FAR;
+}
+
+// Far side of a sphere (for Pac-Man's mouth).
+float sphereFar(vec3 ro, vec3 rd, vec3 c, float r) {
+  vec3 oc = ro - c;
+  float b = dot(oc, rd);
+  float h = b * b - (dot(oc, oc) - r * r);
+  if (h < 0.0) return FAR;
+  float t = -b + sqrt(h);
+  return t > 0.001 ? t : FAR;
 }
 
 // ------------------------------------------------------------ grid walk
@@ -173,8 +183,7 @@ float shadow(vec3 p, vec3 l) {
 
 // ---------------------------------------------------------------- ghosts
 
-// Ghost = wisp: round body, pointed hood, tail trailing behind, two hollow
-// eyes. state 1 body, 2 eyes only.
+// Ghost = dome + wavy skirt + two eyes. state 1 body, 2 eyes only.
 float ghost(vec3 ro, vec3 rd, vec4 g, vec4 col, out vec3 n, out vec3 alb,
             out float emit) {
   n = vec3(0.0);
@@ -183,54 +192,62 @@ float ghost(vec3 ro, vec3 rd, vec4 g, vec4 col, out vec3 n, out vec3 alb,
   if (g.w < 0.5) return FAR;
   vec3 c = vec3(g.xy, 0.42);
   // Skip rays that pass well clear of it.
-  vec3 oc = ro - c;
-  float ob = dot(oc, rd);
-  if (dot(oc, oc) - ob * ob > 0.5) return FAR;
+  vec3 oc0 = ro - c;
+  float ob = dot(oc0, rd);
+  if (dot(oc0, oc0) - ob * ob > 0.5) return FAR;
   vec2 f = vec2(cos(g.z), sin(g.z));
   vec2 side = vec2(-f.y, f.x);
   float best = FAR;
   bool frightened = col.r < 0.2 && col.b > 0.9 && col.g < 0.3;
 
   if (g.w < 1.5) {
-    float sway = 0.03 * sin(uView.y * 5.0 + g.x);
-    for (int k = 0; k < 5; k++) {
-      vec4 b = k == 0 ? vec4(c, 0.27)
-             : k == 1 ? vec4(c.xy - f * 0.07, 0.65, 0.15)
-             : k == 2 ? vec4(c.xy - f * 0.14 + side * sway, 0.78, 0.07)
-             : k == 3 ? vec4(c.xy - f * 0.16 + side * sway, 0.22, 0.17)
-                      : vec4(c.xy - f * 0.30 - side * sway, 0.11, 0.09);
-      float t = sphere(ro, rd, b.xyz, b.w);
-      if (t < best) {
-        best = t;
-        n = normalize(ro + rd * t - b.xyz);
+    const float R = 0.30;
+    // Dome (upper half sphere).
+    float t = sphere(ro, rd, c, R);
+    if (t < FAR && ro.z + rd.z * t >= c.z) {
+      best = t;
+      n = normalize(ro + rd * t - c);
+    }
+    // Skirt: vertical cylinder with a wavy hem.
+    vec2 oc = ro.xy - c.xy;
+    float a = dot(rd.xy, rd.xy);
+    float b = dot(oc, rd.xy);
+    float h = b * b - a * (dot(oc, oc) - R * R);
+    if (h > 0.0) {
+      float tc = (-b - sqrt(h)) / a;
+      vec3 p = ro + rd * tc;
+      float ang = atan(p.y - c.y, p.x - c.x);
+      float hem = 0.07 + 0.05 * sin(ang * 7.0 + uView.y * 9.0);
+      if (tc > 0.001 && tc < best && p.z <= c.z && p.z >= hem) {
+        best = tc;
+        n = normalize(vec3(p.xy - c.xy, 0.0));
       }
     }
     if (best < FAR) {
       alb = col.rgb;
       if (col.a > 0.5) alb = vec3(1.0); // flashing at the end of fright
-      emit = 0.3;
+      emit = 0.25;
     }
   }
   // Eyes (also the only thing left of an eaten ghost).
   for (int k = 0; k < 2; k++) {
     float s = k == 0 ? 1.0 : -1.0;
-    vec3 eye = vec3(c.xy + f * 0.20 + side * 0.11 * s, 0.48);
-    float te = sphere(ro, rd, eye, 0.09);
+    vec3 eye = vec3(c.xy + f * 0.22 + side * 0.11 * s, 0.50);
+    float te = sphere(ro, rd, eye, frightened ? 0.045 : 0.085);
     if (te < best) {
       best = te;
       n = normalize(ro + rd * te - eye);
-      alb = frightened ? vec3(0.91, 0.95, 0.78)
-          : g.w > 1.5 ? col.rgb : vec3(0.03, 0.02, 0.05);
-      emit = frightened || g.w > 1.5 ? 0.5 : 0.0;
+      alb = frightened ? vec3(1.0, 0.8, 0.7) : vec3(1.0);
+      emit = 0.5;
     }
     if (!frightened) {
-      vec3 pin = vec3(eye.xy + f * 0.08, 0.49);
-      float tp = sphere(ro, rd, pin, 0.03);
+      vec3 pup = vec3(eye.xy + f * 0.06, 0.50);
+      float tp = sphere(ro, rd, pup, 0.045);
       if (tp < best) {
         best = tp;
-        n = normalize(ro + rd * tp - pin);
-        alb = vec3(1.0);
-        emit = 0.8;
+        n = normalize(ro + rd * tp - pup);
+        alb = vec3(0.1, 0.2, 1.0);
+        emit = 0.3;
       }
     }
   }
@@ -280,36 +297,31 @@ void main() {
     kind = 4;
     vec3 p = ro + rd * t;
     n = normalize(p - vec3(floor(p.xy) + 0.5, 0.30));
-    alb = vec3(0.91, 0.95, 0.78);
+    alb = pel.y > 0.5 ? vec3(1.0, 0.75, 0.7) : vec3(1.0, 0.72, 0.68);
     emit = pel.y > 0.5 ? 0.9 + 0.6 * sin(time * 6.0) : 0.6;
   }
 
-  // The runner: a lantern. Glowing glass ball with a brass roof, base and
-  // four ribs, a ring on top; the flame jumps while he eats.
+  // Pac-Man: a real sphere with a chomping mouth.
   if (uPacFx.z > 0.5) {
     vec3 pc = vec3(uPac.xy, PAC_Z);
-    float tp = sphere(ro, rd, pc, PAC_R);
-    if (tp < t) {
-      t = tp;
-      isPac = true;
+    vec2 f = vec2(cos(uPac.z), sin(uPac.z));
+    float mouthA = 0.05 + uPac.w * 0.75;
+    for (int k = 0; k < 2; k++) {
+      float tp = k == 0 ? sphere(ro, rd, pc, PAC_R) : sphereFar(ro, rd, pc, PAC_R);
+      if (tp >= t) break;
       vec3 q = ro + rd * tp - pc;
-      n = normalize(q);
-      float rib = abs(sin((atan(q.y, q.x) - uPac.z) * 2.0 + 0.785));
-      bool brass = abs(q.z) > 0.23 || rib < 0.12;
-      float flame = exp(-dot(q.z, q.z) * 30.0) * (0.25 + 0.5 * uPac.w);
-      alb = brass ? vec3(0.55, 0.32, 0.10) : pacCol + vec3(0.0, 0.1, 0.4) * flame;
-      emit = brass ? 0.3 : 1.0;
-      kind = 5;
-    }
-    vec3 ring = pc + vec3(0.0, 0.0, PAC_R + 0.04);
-    tp = sphere(ro, rd, ring, 0.08);
-    if (tp < t) {
-      t = tp;
-      isPac = true;
-      n = normalize(ro + rd * tp - ring);
-      alb = vec3(0.55, 0.32, 0.10);
-      emit = 0.3;
-      kind = 5;
+      float fwdq = dot(q.xy, f);
+      bool inMouth = fwdq > 0.0 && abs(atan(q.z, fwdq)) < mouthA;
+      if (!inMouth) {
+        t = tp;
+        isPac = true;
+        n = normalize(q);
+        if (k == 1) n = -n;
+        alb = k == 1 ? vec3(0.5, 0.05, 0.02) : pacCol; // inside of the mouth
+        emit = k == 1 ? 0.3 : 1.0;
+        kind = 5;
+        break;
+      }
     }
   }
 
@@ -392,7 +404,7 @@ void main() {
   }
 
   if (kind != 0) {
-    // Ambient + the runner's light with shadows.
+    // Ambient + Pac-Man's light with shadows.
     vec3 amb = hell ? vec3(0.03, 0.005, 0.005) : vec3(0.025, 0.03, 0.07);
     vec3 shade = alb * amb * 2.0;
     vec3 tol = L - p;
@@ -410,7 +422,7 @@ void main() {
         shade += lightCol * pow(max(dot(n, hv), 0.0), 40.0) * att * sh * 0.6;
       }
     }
-    // Emissive things glow by themselves; the runner shaded by facing.
+    // Emissive things glow by themselves; Pac-Man shaded by facing.
     if (isPac) {
       float face = 0.55 + 0.45 * max(dot(n, -rd), 0.0);
       float rim = pow(1.0 - max(dot(n, -rd), 0.0), 3.0);
@@ -428,7 +440,7 @@ void main() {
   }
 
   // ---- glow volumes (not occluded only if in front of the hit)
-  // Halo around the runner (bloom).
+  // Halo around Pac-Man (bloom).
   if (uPacFx.z > 0.5) {
     vec3 oc = L - ro;
     float tc = dot(oc, rd);
@@ -446,7 +458,7 @@ void main() {
       col += uFruitC * exp(-dd * dd * 18.0) * 0.4;
     }
   }
-  // The light beam rising from the runner above the walls (Hard / sonar).
+  // The light beam rising from Pac-Man above the walls (Hard / sonar).
   if (uPacFx.x > 0.5) {
     vec2 oc = uPac.xy - ro.xy;
     float a = max(dot(rd.xy, rd.xy), 1e-5);

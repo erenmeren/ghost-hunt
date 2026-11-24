@@ -63,7 +63,7 @@ void main() {
     await render('ray_pac_in_view', RaycastPainter(s, cam), view);
 
     // Fruit and the side tunnel.
-    s.fruit = Fruit(FruitType.pumpkin, m.fruitTile, 9);
+    s.fruit = Fruit(FruitType.melon, m.fruitTile, 9);
     s.player.placeAt(m.index(0, 12), Dir.left);
     await render('top_fruit', TopDownPainter(s), const Size(560, 620));
     await render('map_fruit', MinimapPainter(s, 0), const Size(220, 244));

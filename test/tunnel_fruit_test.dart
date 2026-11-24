@@ -237,7 +237,7 @@ void main() {
     test('disappears after its time', () {
       final s = quiet();
       s.pac.placeAt(s.maze.index(13, 29), Dir.left);
-      s.fruit = Fruit(FruitType.plum, s.maze.fruitTile, 0.5);
+      s.fruit = Fruit(FruitType.cherry, s.maze.fruitTile, 0.5);
       // Pac-Man cannot get there in half a second.
       for (var i = 0; i < 45; i++) {
         s.update(0.01);
@@ -255,7 +255,7 @@ void main() {
       final s = quiet();
       final m = s.maze;
       s.pac.placeAt(m.index(13, 29), Dir.left);
-      s.fruit = Fruit(FruitType.plum, m.fruitTile, 9.5);
+      s.fruit = Fruit(FruitType.cherry, m.fruitTile, 9.5);
       s.player
         ..state = GhostState.active
         ..placeAt(m.fruitTile, Dir.left);
@@ -273,11 +273,11 @@ void main() {
     test('Pac-Man eats it: boost and fruit list', () {
       final s = quiet();
       final m = s.maze;
-      s.fruit = Fruit(FruitType.plum, m.fruitTile, 9.5);
+      s.fruit = Fruit(FruitType.cherry, m.fruitTile, 9.5);
       s.pac.placeAt(m.fruitTile, Dir.left);
       s.update(0.01);
       expect(s.fruit, isNull);
-      expect(s.eatenFruit, [FruitType.plum]);
+      expect(s.eatenFruit, [FruitType.cherry]);
       s.update(0.01);
       expect(s.pac.speed, closeTo(s.pacSpeed * 1.25, 1e-9));
       for (var i = 0; i < 310; i++) {
@@ -285,34 +285,35 @@ void main() {
       }
       expect(s.boostTimer, 0);
       expect(s.pac.speed, closeTo(s.pacSpeed, 1e-9));
-      expect(s.eatenFruit, [FruitType.plum]);
+      expect(s.eatenFruit, [FruitType.cherry]);
     });
 
     test('Pac-Man goes for a visible fruit', () {
       final s = quiet();
       final m = s.maze;
-      s.fruit = Fruit(FruitType.plum, m.fruitTile, 9.5);
+      s.fruit = Fruit(FruitType.cherry, m.fruitTile, 9.5);
       for (var i = 0; i < 940 && s.eatenFruit.isEmpty; i++) {
         s.update(0.01);
       }
-      expect(s.eatenFruit, [FruitType.plum]);
+      expect(s.eatenFruit, [FruitType.cherry]);
     });
 
     test('type per level', () {
       FruitType t(int l) => fruitForLevel(l);
-      expect(t(1), FruitType.plum);
-      expect(t(2), FruitType.lemon);
-      expect([t(3), t(4)], everyElement(FruitType.grapes));
-      expect([t(5), t(6)], everyElement(FruitType.kiwi));
-      expect([t(7), t(8)], everyElement(FruitType.pumpkin));
-      expect([t(9), t(10)], everyElement(FruitType.pineapple));
-      expect([t(11), t(12)], everyElement(FruitType.dragonfruit));
-      expect([t(13), t(40)], everyElement(FruitType.starfruit));
+      expect(t(1), FruitType.cherry);
+      expect(t(2), FruitType.strawberry);
+      expect([t(3), t(4)], everyElement(FruitType.orange));
+      expect([t(5), t(6)], everyElement(FruitType.apple));
+      expect([t(7), t(8)], everyElement(FruitType.melon));
+      expect([t(9), t(10)], everyElement(FruitType.grapes));
+      expect([t(11), t(12)], everyElement(FruitType.bell));
+      expect([t(13), t(40)], everyElement(FruitType.key));
     });
 
     test('Hell keeps the fruit off the minimap', () {
       expect(quiet(d: Difficulty.hard).minimapShowsFruit, isTrue);
-      final s = quiet(d: Difficulty.hell)..fruit = Fruit(FruitType.plum, 0, 9);
+      final s = quiet(d: Difficulty.hell)
+        ..fruit = Fruit(FruitType.cherry, 0, 9);
       expect(s.minimapShowsFruit, isFalse);
       MinimapPainter(
         s,
