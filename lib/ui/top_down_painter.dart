@@ -39,7 +39,7 @@ class TopDownPainter extends CustomPainter {
     canvas.restore();
 
     // Small square pellets; power pellets blink at 4 Hz during play.
-    final wisp = Paint()..color = pelletColor;
+    final pelletPaint = Paint()..color = pelletColor;
     final blink = (s.clock * 8).floor().isEven || s.phase != Phase.playing;
     final dots = Path();
     for (var i = 0; i < m.tiles.length; i++) {
@@ -47,12 +47,12 @@ class TopDownPainter extends CustomPainter {
       if (t != Tile.pellet && t != Tile.power) continue;
       final c = at(m.xOf(i) + 0.5, m.yOf(i) + 0.5);
       if (t == Tile.power) {
-        if (blink) canvas.drawCircle(c, cell * 0.375, wisp);
+        if (blink) canvas.drawCircle(c, cell * 0.375, pelletPaint);
       } else {
         dots.addRect(Rect.fromCircle(center: c, radius: cell * 0.125));
       }
     }
-    canvas.drawPath(dots, wisp);
+    canvas.drawPath(dots, pelletPaint);
 
     final fruit = s.fruit;
     if (fruit != null) {

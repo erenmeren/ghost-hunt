@@ -36,16 +36,16 @@ class MinimapPainter extends CustomPainter {
     canvas.restore();
 
     if (s.minimapShowsTrail) {
-      final wisp = Paint()..color = pelletColor.withValues(alpha: 0.8);
+      final pelletPaint = Paint()..color = pelletColor.withValues(alpha: 0.8);
       for (var i = 0; i < m.tiles.length; i++) {
         final t = m.tiles[i];
         if (t != Tile.pellet && t != Tile.power) continue;
         final c = Offset((m.xOf(i) + 0.5) * cell, (m.yOf(i) + 0.5) * cell);
         t == Tile.power
-            ? canvas.drawCircle(c, cell * 0.375, wisp)
+            ? canvas.drawCircle(c, cell * 0.375, pelletPaint)
             : canvas.drawRect(
                 Rect.fromCircle(center: c, radius: cell * 0.125),
-                wisp,
+                pelletPaint,
               );
       }
     }
