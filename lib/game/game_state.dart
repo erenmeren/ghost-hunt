@@ -3,6 +3,7 @@ import 'dart:ui' show Color;
 
 import 'economy.dart';
 import 'entities.dart';
+import 'fruit.dart';
 import 'maze.dart';
 import 'pacman_ai.dart';
 
@@ -22,6 +23,9 @@ enum EventType {
   lost,
   powerUp,
   powerUpEnd,
+  fruitAppeared,
+  fruitEaten,
+  fruitGone,
 }
 
 class GameEvent {
@@ -31,12 +35,14 @@ class GameEvent {
     this.byPlayer = false,
     this.coins = 0,
     this.powerUp,
+    this.fruit,
   });
   final EventType type;
   final int tile;
   final bool byPlayer;
   final int coins;
   final PowerUp? powerUp;
+  final FruitType? fruit;
 }
 
 /// Pure game logic: no Flutter widgets, fully testable.
@@ -46,6 +52,7 @@ class GameState {
     this.level = 1,
     int? seed,
     Profile? profile,
+    this.score = 0,
   }) : rng = math.Random(seed),
        maze = Maze.classic(),
        profile = profile ?? Profile() {
@@ -63,7 +70,7 @@ class GameState {
         tile: maze.ghostStarts[0],
         personality: Personality.blinky,
         isPlayer: false,
-        color: const Color(0xFFFF2020),
+        color: const Color(0xFFB6FF4A),
         speed: aiSpeed,
         releaseDelay: 0.5,
       ),
@@ -71,7 +78,7 @@ class GameState {
         tile: maze.ghostStarts[1],
         personality: Personality.pinky,
         isPlayer: false,
-        color: const Color(0xFFFFB8DE),
+        color: const Color(0xFFFF5FD2),
         speed: aiSpeed,
         releaseDelay: 4,
       ),
@@ -79,7 +86,7 @@ class GameState {
         tile: maze.ghostStarts[2],
         personality: Personality.clyde,
         isPlayer: false,
-        color: const Color(0xFFFFB851),
+        color: const Color(0xFFEDEBFF),
         speed: aiSpeed,
         releaseDelay: 8,
       ),
@@ -109,6 +116,18 @@ class GameState {
   int playerCatches = 0;
   int teamCatches = 0;
   double frightTimer = 0;
+
+  /// Points of this run; later levels start from the previous total.
+  int score;
+
+  // Bonus fruit: appears after these many pellets, only Pac-Man can eat it.
+  static const fruitThresholds = [70, 170];
+  static const fruitSeconds = 9.5;
+  static const fruitBoost = 1.25;
+  static const fruitBoostSeconds = 3.0;
+  Fruit? fruit;
+  double boostTimer = 0;
+  final List<FruitType> eatenFruit = [];
 
   // Scatter/chase schedule of the arcade ghosts (seconds).
   static const _modeSchedule = [7.0, 20.0, 7.0, 20.0, 5.0, 20.0, 5.0];
@@ -150,6 +169,11 @@ class GameState {
     return true;
   }
 
+  void _addScore(int n) {
+    score += n;
+    profile.recordScore(score);
+  }
+
   void _earn(int n) {
     coinsEarned += n;
     profile.addCoins(n);
@@ -161,6 +185,7 @@ class GameState {
   bool get minimapShowsPac => isActive(PowerUp.sonar);
   bool get proximitySound => difficulty != Difficulty.easy;
   bool get minimapShowsTrail => difficulty == Difficulty.hard;
+  bool get minimapShowsFruit => difficulty == Difficulty.hard;
 
   double get pacSpeed => math.min(6.2, 4.6 + 0.3 * (level - 1));
   double get playerSpeed =>
@@ -168,6 +193,15 @@ class GameState {
 
   /// How far (in corridor tiles) Pac-Man's waka can be heard.
   double get hearing => 22.0 + profile.hearingBonus;
+
+  /// Ghosts (you included) crawl through the side tunnel.
+  static const tunnelFactor = 0.5;
+
+  double _tunnelled(Ghost g, double speed, double normal) =>
+      maze.isTunnel(g.nearTile(maze))
+      ? math.min(speed, normal * tunnelFactor)
+      : speed;
+
   double get aiSpeed => math.min(5.0, 4.0 + 0.2 * (level - 1));
   double get frightDuration => math.max(2.0, 7.0 - (level - 1));
 
@@ -290,7 +324,11 @@ class GameState {
       }
     }
 
-    pac.speed = pacSpeed * (frightTimer > 0 ? 1.1 : 1.0);
+    _updateFruit(dt);
+    pac.speed =
+        pacSpeed *
+        (frightTimer > 0 ? 1.1 : 1.0) *
+        (boostTimer > 0 ? fruitBoost : 1.0);
     pac.step(
       dt,
       maze,
@@ -299,6 +337,7 @@ class GameState {
       onArrive: _pacArrive,
     );
     if (phase != Phase.playing) return;
+    _eatFruit();
 
     for (final g in ghosts) {
       _updateGhost(g, dt);
@@ -306,11 +345,39 @@ class GameState {
     _checkCollisions();
   }
 
+  void _updateFruit(double dt) {
+    boostTimer = math.max(0, boostTimer - dt);
+    final f = fruit;
+    if (f == null) return;
+    f.timeLeft -= dt;
+    if (f.timeLeft <= 0) {
+      fruit = null;
+      _events.add(GameEvent(EventType.fruitGone, tile: f.tile, fruit: f.type));
+    }
+  }
+
+  /// Pac-Man only: ghosts are never checked against the fruit.
+  void _eatFruit() {
+    final f = fruit;
+    if (f == null || pac.nearTile(maze) != f.tile) return;
+    fruit = null;
+    boostTimer = fruitBoostSeconds;
+    eatenFruit.add(f.type);
+    _events.add(GameEvent(EventType.fruitEaten, tile: f.tile, fruit: f.type));
+  }
+
   void _pacArrive(int t) {
     final tile = maze.tiles[t];
     if (tile != Tile.pellet && tile != Tile.power) return;
     maze.tiles[t] = Tile.empty;
     maze.pelletsLeft--;
+    if (fruitThresholds.contains(maze.pelletsEaten)) {
+      final type = fruitForLevel(level);
+      fruit = Fruit(type, maze.fruitTile, fruitSeconds);
+      _events.add(
+        GameEvent(EventType.fruitAppeared, tile: maze.fruitTile, fruit: type),
+      );
+    }
     if (tile == Tile.power) {
       excitement = 1;
       frightTimer = frightDuration;
@@ -371,10 +438,14 @@ class GameState {
         });
       case GhostState.active:
         if (g.isPlayer) {
-          g.speed = g.frightened ? 3.6 : playerSpeed;
+          g.speed = _tunnelled(
+            g,
+            g.frightened ? 3.6 : playerSpeed,
+            playerSpeed,
+          );
           g.step(dt, maze, _playerPassable, _decidePlayer);
         } else {
-          g.speed = g.frightened ? 2.6 : aiSpeed;
+          g.speed = _tunnelled(g, g.frightened ? 2.6 : aiSpeed, aiSpeed);
           g.step(dt, maze, maze.pacWalkable, () => _decideAi(g));
         }
     }
@@ -469,7 +540,7 @@ class GameState {
       if (g.state == GhostState.eaten || g.state == GhostState.inHouse) {
         continue;
       }
-      final dx = g.x(maze) - px, dy = g.y(maze) - py;
+      final dx = maze.wrapDx(g.x(maze) - px), dy = g.y(maze) - py;
       if (dx * dx + dy * dy > 0.36) continue;
       if (g.frightened) {
         g.state = GhostState.eaten;
@@ -489,6 +560,14 @@ class GameState {
               )
             : Rewards.teamCatch(difficulty);
         _earn(reward);
+        _addScore(
+          g.isPlayer
+              ? Score.playerCatch(
+                  difficulty,
+                  maze.pelletsLeft / maze.totalPellets,
+                )
+              : Score.teamCatch(difficulty),
+        );
         _events.add(
           GameEvent(EventType.pacCaught, byPlayer: g.isPlayer, coins: reward),
         );
@@ -496,6 +575,7 @@ class GameState {
           phase = Phase.won;
           final bonus = Rewards.levelWin(difficulty, level);
           _earn(bonus);
+          _addScore(Score.levelWin(difficulty, level));
           _events.add(GameEvent(EventType.won, coins: bonus));
         } else {
           phase = Phase.caught;
@@ -519,6 +599,8 @@ class GameState {
       g.timer = g.releaseDelay;
     }
     frightTimer = 0;
+    fruit = null;
+    boostTimer = 0;
     active.remove(PowerUp.phase);
     queuedTurn = Turn.none;
     wantedDir = Dir.none;

@@ -46,39 +46,41 @@ const List<Dir> moveDirs = [Dir.up, Dir.left, Dir.down, Dir.right];
 
 enum Tile { wall, empty, pellet, power, door, house }
 
-/// Classic 28x31 layout. Tunnels are closed so the 3D view stays simple.
+/// The 28x31 layout. Open ends on the left and right edge of one row form a
+/// side tunnel: whoever leaves on one side comes back on the other.
 ///   # wall   . pellet   o power pellet   - ghost door   H ghost house
 ///   P Pac-Man start   G player ghost start   g AI ghost starts
-const List<String> classicLayout = [
+///   F fruit spot (just below the ghost house)
+const List<String> mansionLayout = [
   '############################',
-  '#............##............#',
-  '#.####.#####.##.#####.####.#',
-  '#o####.#####.##.#####.####o#',
-  '#.####.#####.##.#####.####.#',
   '#..........................#',
-  '#.####.##.########.##.####.#',
-  '#.####.##.########.##.####.#',
-  '#......##....##....##......#',
-  '######.##### ## #####.######',
-  '     #.##### ## #####.#     ',
-  '     #.##    G     ##.#     ',
-  '     #.## ###--### ##.#     ',
-  '######.## #HHHHHH# ##.######',
-  '######.   #HgHgHg#   .######',
-  '######.## #HHHHHH# ##.######',
-  '     #.## ######## ##.#     ',
-  '     #.##          ##.#     ',
-  '     #.## ######## ##.#     ',
-  '######.## ######## ##.######',
+  '#o#########.####.#########o#',
+  '#.#########.####.#########.#',
+  '#.....##....####....##.....#',
+  '#.###.##.##########.##.###.#',
+  '#.###.##.##########.##.###.#',
+  '#........... ## ...........#',
+  '#####.## ### ## ### ##.#####',
+  '#####.## ### ## ### ##.#####',
+  '#####.##     G      ##.#####',
+  '##### ## ####--#### ## #####',
+  '         #HgHHgHgH#         ',
+  '##### ## #HHHHHHHH# ## #####',
+  '#####.## ########## ##.#####',
+  '#####.##     F      ##.#####',
+  '#####.## ### ## ### ##.#####',
+  '#####.## ### ## ### ##.#####',
+  '#........... ## ...........#',
+  '#.#######.########.#######.#',
+  '#.#######.########.#######.#',
+  '#.##.......  P   .......##.#',
+  '#.##.####.########.####.##.#',
+  '#.##.####.########.####.##.#',
   '#............##............#',
-  '#.####.#####.##.#####.####.#',
-  '#.####.#####.##.#####.####.#',
-  '#o..##.......P .......##..o#',
-  '###.##.##.########.##.##.###',
-  '###.##.##.########.##.##.###',
-  '#......##....##....##......#',
-  '#.##########.##.##########.#',
-  '#.##########.##.##########.#',
+  '#.##.##.####.##.####.##.##.#',
+  '#....##......##......##....#',
+  '#.########.######.########.#',
+  '#o########.######.########o#',
   '#..........................#',
   '############################',
 ];
@@ -91,6 +93,7 @@ class Maze {
     this.pacStart,
     this.playerStart,
     this.ghostStarts,
+    this.fruitTile,
     this.totalPellets,
   ) : pelletsLeft = totalPellets;
 
@@ -100,8 +103,13 @@ class Maze {
   final int pacStart;
   final int playerStart;
   final List<int> ghostStarts;
+
+  /// Where the bonus fruit appears.
+  final int fruitTile;
   final int totalPellets;
   int pelletsLeft;
+
+  int get pelletsEaten => totalPellets - pelletsLeft;
 
   /// Tile just outside the ghost door; ghosts leave the house towards it.
   int get houseExit => playerStart;
@@ -113,7 +121,7 @@ class Maze {
     final h = rows.length;
     final w = rows.first.length;
     final tiles = List<Tile>.filled(w * h, Tile.wall);
-    int? pac, player;
+    int? pac, player, fruit;
     final ghosts = <int>[];
     for (var y = 0; y < h; y++) {
       final row = rows[y];
@@ -135,6 +143,8 @@ class Maze {
             pac = i;
           case 'G':
             player = i;
+          case 'F':
+            fruit = i;
           case 'g':
             ghosts.add(i);
         }
@@ -151,8 +161,9 @@ class Maze {
       final c = queue.removeFirst();
       final cx = c % w, cy = c ~/ w;
       for (final d in moveDirs) {
-        final nx = cx + d.dx, ny = cy + d.dy;
-        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        // Open tiles on both ends of a row are connected (side tunnel).
+        final nx = (cx + d.dx) % w, ny = cy + d.dy;
+        if (ny < 0 || ny >= h) continue;
         final n = ny * w + nx;
         if (!seen[n] && tiles[n] != Tile.wall) {
           seen[n] = true;
@@ -166,10 +177,10 @@ class Maze {
     final pellets = tiles
         .where((t) => t == Tile.pellet || t == Tile.power)
         .length;
-    return Maze._(w, h, tiles, pac, player, ghosts, pellets);
+    return Maze._(w, h, tiles, pac, player, ghosts, fruit ?? pac, pellets);
   }
 
-  factory Maze.classic() => Maze.parse(classicLayout);
+  factory Maze.classic() => Maze.parse(mansionLayout);
 
   int xOf(int i) => i % width;
   int yOf(int i) => i ~/ width;
@@ -182,12 +193,54 @@ class Maze {
 
   Tile tileAt(int i) => i < 0 ? Tile.wall : tiles[i];
 
-  /// Neighbour index in direction [d], or -1 when off the grid.
+  /// Neighbour index in direction [d], or -1 when off the grid. Through the
+  /// side tunnel the neighbour is on the opposite edge.
   int neighbor(int i, Dir d) {
     if (d == Dir.none) return i;
-    final x = i % width + d.dx, y = i ~/ width + d.dy;
-    if (x < 0 || y < 0 || x >= width || y >= height) return -1;
+    var x = i % width + d.dx;
+    final y = i ~/ width + d.dy;
+    if (y < 0 || y >= height) return -1;
+    if (x < 0 || x >= width) {
+      if (!isTunnelRow(y)) return -1;
+      x = (x + width) % width;
+    }
     return y * width + x;
+  }
+
+  /// Both edges of row [y] are open.
+  bool isTunnelRow(int y) =>
+      tiles[y * width] != Tile.wall &&
+      tiles[y * width + width - 1] != Tile.wall;
+
+  /// Tiles of the side tunnel, from each edge up to the first junction.
+  late final Set<int> tunnelTiles = _findTunnel();
+
+  Set<int> _findTunnel() {
+    final out = <int>{};
+    for (var y = 1; y < height - 1; y++) {
+      if (!isTunnelRow(y)) continue;
+      bool plain(int x) =>
+          !isWallXY(x, y) && isWallXY(x, y - 1) && isWallXY(x, y + 1);
+      for (var x = 0; x < width && plain(x); x++) {
+        out.add(index(x, y));
+      }
+      for (var x = width - 1; x >= 0 && plain(x); x--) {
+        out.add(index(x, y));
+      }
+    }
+    return out;
+  }
+
+  bool isTunnel(int i) => tunnelTiles.contains(i);
+
+  /// World x wrapped into [0, width).
+  double wrapX(double x) => x < 0 ? x + width : (x >= width ? x - width : x);
+
+  /// Shortest horizontal offset, counting the way through the edge.
+  double wrapDx(double dx) {
+    if (dx > width / 2) return dx - width;
+    if (dx < -width / 2) return dx + width;
+    return dx;
   }
 
   /// Pac-Man (and the player ghost) stay in the corridors.

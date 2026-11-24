@@ -58,6 +58,11 @@ flutter:
     - shaders/scene.frag
   assets:
     - assets/sounds/
+    - assets/fonts/OFL.txt
+  fonts:
+    - family: PressStart2P
+      fonts:
+        - asset: assets/fonts/PressStart2P-Regular.ttf
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

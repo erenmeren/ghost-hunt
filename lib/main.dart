@@ -6,6 +6,7 @@ import 'audio/sfx.dart';
 import 'game/economy.dart';
 import 'game/game_state.dart';
 import 'profile_store.dart';
+import 'ui/arcade_layout.dart';
 import 'ui/game_screen.dart';
 import 'ui/how_to_play_screen.dart';
 import 'ui/shop_screen.dart';
@@ -132,22 +133,21 @@ class _MenuScreenState extends State<MenuScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'GHOST HUNT',
-                    style: TextStyle(
-                      color: pacYellow,
-                      fontSize: 40,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 3,
-                      shadows: [
-                        Shadow(color: Color(0x99FFE000), blurRadius: 12),
-                        Shadow(color: Color(0x44FFE000), blurRadius: 28),
-                      ],
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'GHOST HUNT',
+                      style: pixelText(34, color: pacYellow).copyWith(
+                        shadows: const [
+                          Shadow(color: Color(0x99FFE000), blurRadius: 12),
+                          Shadow(color: Color(0x44FFE000), blurRadius: 28),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'This time you\'re the ghost. Catch Pac-Man before he eats all the pellets.',
+                    'This time you\'re the ghost. Catch the runner before he eats all the pellets.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.white70, fontSize: 15),
                   ),
@@ -160,7 +160,7 @@ class _MenuScreenState extends State<MenuScreen> {
                   ),
                   _ModeButton(
                     title: 'HARD',
-                    subtitle: '3D through the ghost\'s eyes. Pac-Man\'s light beam shows above the walls and beats like a heart as he eats. The "waka" gets louder as you close in.',
+                    subtitle: '3D through the ghost\'s eyes. The runner\'s light beam shows above the walls and beats like a heart as he eats. The "waka" gets louder as you close in.',
                     color: const Color(0xFFFFB851),
                     onTap: () => _start(context, Difficulty.hard),
                   ),
@@ -284,7 +284,7 @@ class _TitleArt extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final cy = size.height / 2;
-    drawPacman(canvas, Offset(size.width * 0.2, cy), 30, 0.7);
+    drawRunner(canvas, Offset(size.width * 0.2, cy), 30, 0.7);
     drawGhost(
       canvas,
       Offset(size.width * 0.62, cy),
@@ -296,7 +296,7 @@ class _TitleArt extends CustomPainter {
       canvas,
       Offset(size.width * 0.9, cy),
       22,
-      color: const Color(0xFFFF2020),
+      color: const Color(0xFFB6FF4A),
       lookX: -1,
     );
   }

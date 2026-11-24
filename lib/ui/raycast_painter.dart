@@ -7,6 +7,7 @@ import '../game/entities.dart';
 import '../game/game_state.dart';
 import '../game/maze.dart';
 import 'sprites.dart';
+import 'wall_art.dart';
 
 /// Camera for the first-person view (world units = tiles).
 class Camera {
@@ -106,11 +107,7 @@ class RaycastPainter extends CustomPainter {
       final x0 = i * strip;
 
       if (tile == Tile.door) {
-        fillPaint.color = Color.lerp(
-          Colors.black,
-          const Color(0xFFFFB8DE),
-          shade * 0.8,
-        )!;
+        fillPaint.color = Color.lerp(Colors.black, gateColor, shade * 0.8)!;
         canvas.drawRect(
           Rect.fromLTWH(x0, horizon - lh * 0.08, strip + 0.5, lh * 0.16),
           fillPaint,
@@ -118,18 +115,21 @@ class RaycastPainter extends CustomPainter {
         continue;
       }
 
-      // Dark body with neon top and bottom edges, like the arcade walls.
+      // The side tunnel ends in darkness, not in a wall.
+      if (mapX < 0 || mapX >= m.width) {
+        fillPaint.color = const Color(0xFF010104);
+        canvas.drawRect(Rect.fromLTWH(x0, top, strip + 0.5, wallH), fillPaint);
+        continue;
+      }
+
+      // Dark body with neon top and bottom edges.
       fillPaint.color = Color.lerp(
         Colors.black,
-        const Color(0xFF14147A),
+        const Color(0xFF1C1458),
         shade,
       )!;
       canvas.drawRect(Rect.fromLTWH(x0, top, strip + 0.5, wallH), fillPaint);
-      edgePaint.color = Color.lerp(
-        Colors.black,
-        const Color(0xFF4A4AFF),
-        shade,
-      )!;
+      edgePaint.color = Color.lerp(Colors.black, neonColor, shade)!;
       final edgeH = math.max(1.5, wallH * 0.035);
       canvas.drawRect(Rect.fromLTWH(x0, top, strip + 0.5, edgeH), edgePaint);
       canvas.drawRect(
@@ -165,7 +165,7 @@ class RaycastPainter extends CustomPainter {
     int col(double sx) => (sx / strip).floor().clamp(0, n - 1);
 
     // Pellets close by (cheap: only within fog range).
-    final pelletPaint = Paint()..color = pelletColor;
+    final pelletPaint = Paint()..color = wispColor;
     final blink = (s.clock * 3).floor().isEven;
     final r0 = _fogDist.ceil();
     for (
@@ -188,7 +188,7 @@ class RaycastPainter extends CustomPainter {
         if (zbuf[col(sx)] < ty) continue;
         final scale = h / ty;
         final fog = (1 - ty / _fogDist).clamp(0.1, 1.0);
-        pelletPaint.color = pelletColor.withValues(alpha: fog);
+        pelletPaint.color = wispColor.withValues(alpha: fog);
         canvas.drawCircle(
           Offset(sx, horizon + scale * 0.2),
           scale * (t == Tile.power ? 0.1 : 0.03),
@@ -295,15 +295,36 @@ class RaycastPainter extends CustomPainter {
         }),
       );
     }
+    final fruit = s.fruit;
+    final fp = fruit == null
+        ? null
+        : project(m.xOf(fruit.tile) + 0.5, m.yOf(fruit.tile) + 0.5);
+    if (fruit != null && fp != null) {
+      final (sx, ty) = fp;
+      sprites.add(
+        _Sprite(sx, ty, (c, sx, scale) {
+          final bob = math.sin(s.clock * 4) * scale * 0.02;
+          final at = Offset(sx, horizon + scale * 0.2 + bob);
+          c.drawCircle(
+            at,
+            scale * 0.26,
+            Paint()
+              ..color = fruitColor(fruit.type).withValues(alpha: 0.35)
+              ..maskFilter = MaskFilter.blur(BlurStyle.normal, scale * 0.08),
+          );
+          drawFruit(c, at, scale * 0.18, fruit.type);
+        }),
+      );
+    }
     final pp = project(s.pac.x(m), s.pac.y(m));
     if (pp != null) {
       final (sx, ty) = pp;
       sprites.add(
         _Sprite(sx, ty, (c, sx, scale) {
-          // Mouth faces left/right on screen depending on its heading.
+          // He looks left/right on screen depending on his heading.
           final rel = s.pac.dir.angle - cam.angle;
           final facing = math.sin(rel) >= 0 ? 0.0 : math.pi;
-          drawPacman(
+          drawRunner(
             c,
             Offset(sx, horizon + scale * 0.15),
             scale * 0.33,

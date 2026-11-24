@@ -150,6 +150,15 @@ class ShaderScenePainter extends CustomPainter {
     }
     f(m.width.toDouble());
     f(m.height.toDouble());
+    // Bonus fruit: x, y, visible; then its colour.
+    final fruit = s.fruit;
+    f(fruit == null ? 0 : m.xOf(fruit.tile) + 0.5);
+    f(fruit == null ? 0 : m.yOf(fruit.tile) + 0.5);
+    f(fruit == null ? 0 : 1);
+    final fc = fruit == null ? Colors.black : fruitColor(fruit.type);
+    f(fc.r);
+    f(fc.g);
+    f(fc.b);
     sh.setImageSampler(0, img);
 
     canvas.drawRect(Offset.zero & size, Paint()..shader = sh);

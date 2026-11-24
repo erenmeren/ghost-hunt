@@ -45,27 +45,32 @@ class HowToPlayScreen extends StatelessWidget {
               children: [
                 const _Header('Goal'),
                 const _Bullet(
-                  'This time you\'re the ghost. Pac-Man plays on his own: he '
+                  'This time you\'re the ghost. The runner plays on his own: he '
                   'eats pellets and runs from you. Your job is to catch him '
                   'before he eats them all.',
                 ),
                 const _Bullet(
-                  'Pac-Man starts with 3 lives. Every time you or your '
+                  'The runner starts with 3 lives. Every time you or your '
                   'teammates (the other three ghosts) catch him, he loses one. '
                   'When he runs out, you win and move on to the next level.',
                 ),
                 const _Bullet(
-                  'If Pac-Man eats all the pellets, he wins and you try the '
+                  'If the runner eats all the pellets, he wins and you try the '
                   'level again.',
                 ),
                 const _Bullet(
-                  'When Pac-Man eats a power pellet, the ghosts turn blue for '
+                  'When the runner eats a power pellet, the ghosts turn blue for '
                   'a while and he chases you all: run! Touch him while you\'re '
                   'blue and you get eaten, then respawn at your starting point '
                   'a few seconds later.',
                 ),
                 const _Bullet(
-                  'Pac-Man gets a little faster and smarter every level.',
+                  'Fruit sometimes shows up below the ghost house. Ghosts '
+                  'can\'t eat it, only he can, and it makes him faster for a '
+                  'moment.',
+                ),
+                const _Bullet(
+                  'The runner gets a little faster and smarter every level.',
                 ),
                 const SizedBox(height: 18),
                 const _Header('Modes'),
@@ -74,7 +79,7 @@ class HowToPlayScreen extends StatelessWidget {
                   color: _easy,
                   lines: [
                     'Classic top-down 2D view. Everything is on screen: the '
-                        'maze, the pellets, Pac-Man and the other ghosts.',
+                        'maze, the pellets, the runner and the other ghosts.',
                     'Swipe or use the arrow keys to choose which way to go.',
                     'The Sonar pack can\'t be used in this mode.',
                   ],
@@ -84,11 +89,11 @@ class HowToPlayScreen extends StatelessWidget {
                   color: _hard,
                   lines: [
                     'First-person 3D through the ghost\'s eyes.',
-                    'Pac-Man\'s yellow light beam shows above the walls and '
+                    'The runner\'s yellow light beam shows above the walls and '
                         'beats like a heart, faster as he eats pellets.',
-                    'The "waka" gets louder as Pac-Man nears you through the '
+                    'The "waka" gets louder as the runner nears you through the '
                         'corridors, and you hear it from the side he is on.',
-                    'The map at the bottom right doesn\'t show Pac-Man, but it '
+                    'The map at the bottom right doesn\'t show the runner, but it '
                         'does show the pellets left: the trail of eaten '
                         'pellets is your clue.',
                     'Coins earned ×${Rewards.multiplier(Difficulty.hard)}.',
@@ -100,9 +105,9 @@ class HowToPlayScreen extends StatelessWidget {
                   lines: [
                     '3D, no visual hints: no light beam, only the walls and '
                         'you on the map.',
-                    'Trust your ears alone: find Pac-Man by his "waka".',
+                    'Trust your ears alone: find the runner by his "waka".',
                     'Jump to peek over the walls for a moment and look for '
-                        'Pac-Man\'s glow (once every few seconds).',
+                        'the runner\'s glow (once every few seconds).',
                     'Coins earned ×${Rewards.multiplier(Difficulty.hell)}.',
                   ],
                 ),
@@ -126,7 +131,7 @@ class HowToPlayScreen extends StatelessWidget {
                 const SizedBox(height: 18),
                 const _Header('Coins & upgrades'),
                 _Bullet(
-                  'Catch Pac-Man yourself to earn $catchMin–$catchMax 🪙; the '
+                  'Catch the runner yourself to earn $catchMin–$catchMax 🪙; the '
                   'earlier you catch him, the more you get. If a teammate '
                   'catches him you get ${Rewards.teamCatch(e)} 🪙, and winning '
                   'the level pays a bonus.',

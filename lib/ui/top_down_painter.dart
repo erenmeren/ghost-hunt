@@ -1,118 +1,113 @@
-import 'dart:math' as math;
-
 import 'package:material_ui/material_ui.dart';
 
 import '../game/entities.dart';
 import '../game/game_state.dart';
 import '../game/maze.dart';
+import 'arcade_layout.dart';
 import 'sprites.dart';
+import 'wall_art.dart';
 
+/// Accent colour of menus and cards.
 const wallBlue = Color(0xFF2121DE);
 
-/// Classic overhead view used by Easy mode.
+/// Overhead view used by Easy mode.
 class TopDownPainter extends CustomPainter {
-  TopDownPainter(this.s);
+  TopDownPainter(this.s, {this.safe = EdgeInsets.zero});
 
   final GameState s;
+
+  /// Screen edges to keep clear (notches).
+  final EdgeInsets safe;
 
   @override
   void paint(Canvas canvas, Size size) {
     final m = s.maze;
-    final cell = math.min(size.width / m.width, size.height / m.height);
-    final ox = (size.width - cell * m.width) / 2;
-    final oy = (size.height - cell * m.height) / 2;
+    final layout = ArcadeLayout(size, m, safe);
+    final cell = layout.cell, field = layout.field;
+    final ox = field.left, oy = field.top;
     Offset at(double x, double y) => Offset(ox + x * cell, oy + y * cell);
 
-    final edge = Paint()
-      ..color = wallBlue
-      ..strokeWidth = math.max(1.5, cell * 0.14)
-      ..strokeCap = StrokeCap.round;
-    final fill = Paint()..color = const Color(0xFF0A0A3A);
-    final pellet = Paint()..color = pelletColor;
-    final blink = (s.clock * 3).floor().isEven || s.phase != Phase.playing;
+    canvas.save();
+    canvas.clipRect(field);
+    canvas.drawRect(field, Paint()..color = floorColor);
 
-    for (var y = 0; y < m.height; y++) {
-      for (var x = 0; x < m.width; x++) {
-        final t = m.at(x, y);
-        final r = Rect.fromLTWH(ox + x * cell, oy + y * cell, cell, cell);
-        switch (t) {
-          case Tile.wall:
-            canvas.drawRect(r, fill);
-            if (!m.isWallXY(x, y - 1)) {
-              canvas.drawLine(r.topLeft, r.topRight, edge);
-            }
-            if (!m.isWallXY(x, y + 1)) {
-              canvas.drawLine(r.bottomLeft, r.bottomRight, edge);
-            }
-            if (!m.isWallXY(x - 1, y)) {
-              canvas.drawLine(r.topLeft, r.bottomLeft, edge);
-            }
-            if (!m.isWallXY(x + 1, y)) {
-              canvas.drawLine(r.topRight, r.bottomRight, edge);
-            }
-          case Tile.door:
-            canvas.drawRect(
-              Rect.fromLTWH(r.left, r.center.dy - cell * 0.1, cell, cell * 0.2),
-              Paint()..color = const Color(0xFFFFB8DE),
-            );
-          case Tile.pellet:
-            canvas.drawRect(
-              Rect.fromCenter(
-                center: r.center,
-                width: cell * 0.25,
-                height: cell * 0.25,
-              ),
-              pellet,
-            );
-          case Tile.power:
-            if (blink) canvas.drawCircle(r.center, cell * 0.38, pellet);
-          default:
-            break;
-        }
+    // Walls and gate: one cached picture in tile units.
+    canvas.save();
+    canvas.translate(ox, oy);
+    canvas.scale(cell);
+    canvas.drawPicture(WallArt.of(m).picture);
+    canvas.restore();
+
+    // Small square pellets; power pellets blink at 4 Hz during play.
+    final wisp = Paint()..color = wispColor;
+    final blink = (s.clock * 8).floor().isEven || s.phase != Phase.playing;
+    final dots = Path();
+    for (var i = 0; i < m.tiles.length; i++) {
+      final t = m.tiles[i];
+      if (t != Tile.pellet && t != Tile.power) continue;
+      final c = at(m.xOf(i) + 0.5, m.yOf(i) + 0.5);
+      if (t == Tile.power) {
+        if (blink) canvas.drawCircle(c, cell * 0.375, wisp);
+      } else {
+        dots.addRect(Rect.fromCircle(center: c, radius: cell * 0.125));
       }
+    }
+    canvas.drawPath(dots, wisp);
+
+    final fruit = s.fruit;
+    if (fruit != null) {
+      drawFruit(
+        canvas,
+        at(m.xOf(fruit.tile) + 0.5, m.yOf(fruit.tile) + 0.5),
+        cell * 0.75,
+        fruit.type,
+      );
+    }
+
+    // Actors in the side tunnel show on both edges at once.
+    void wrapped(double x, double y, void Function(Offset) draw) {
+      draw(at(x, y));
+      if (x < 1.5) draw(at(x + m.width, y));
+      if (x > m.width - 1.5) draw(at(x - m.width, y));
     }
 
     // Ghosts.
     for (final g in s.ghosts) {
       if (!g.visible) continue;
-      final c = at(g.x(m), g.y(m));
       final flashing = s.frightTimer < 2 && (s.clock * 5).floor().isEven;
-      if (g.isPlayer) {
-        // Mark "you" with a pulsing halo.
-        final pulse = 0.5 + 0.5 * math.sin(s.clock * 6);
-        canvas.drawCircle(
+      wrapped(g.x(m), g.y(m), (c) {
+        drawGhost(
+          canvas,
           c,
-          cell * (0.95 + pulse * 0.15),
-          Paint()
-            ..color = Colors.white.withValues(alpha: 0.5)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = math.max(1.5, cell * 0.1),
+          cell * 0.8,
+          color: g.color,
+          frightened: g.frightened,
+          flashing: flashing,
+          eyesOnly: g.state == GhostState.eaten,
+          lookX: g.dir.dx.toDouble(),
+          lookY: g.dir.dy.toDouble(),
+          wobble: s.clock * 4,
+          // "You" burn brighter and pulse.
+          pulse: g.isPlayer ? playerPulse(s.clock) : null,
         );
-      }
-      drawGhost(
-        canvas,
-        c,
-        cell * 0.72,
-        color: g.color,
-        frightened: g.frightened,
-        flashing: flashing,
-        eyesOnly: g.state == GhostState.eaten,
-        lookX: g.dir.dx.toDouble(),
-        lookY: g.dir.dy.toDouble(),
-        wobble: s.clock * 4,
-      );
+      });
     }
 
-    // Pac-Man.
+    // The runner.
     if (s.phase != Phase.caught || (s.clock * 6).floor().isEven) {
-      drawPacman(
-        canvas,
-        at(s.pac.x(m), s.pac.y(m)),
-        cell * 0.75,
-        s.pac.mouthOpen,
-        facing: s.pac.dir.angle,
+      wrapped(
+        s.pac.x(m),
+        s.pac.y(m),
+        (c) => drawRunner(
+          canvas,
+          c,
+          cell * 0.75,
+          s.pac.mouthOpen,
+          facing: s.pac.dir.angle,
+        ),
       );
     }
+    canvas.restore();
   }
 
   @override

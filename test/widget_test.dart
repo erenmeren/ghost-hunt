@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ghost_hunt/audio/sfx.dart';
 import 'package:ghost_hunt/game/game_state.dart';
 import 'package:ghost_hunt/main.dart';
+import 'package:ghost_hunt/ui/arcade_layout.dart';
 import 'package:ghost_hunt/ui/game_screen.dart';
 import 'package:ghost_hunt/ui/raycast_painter.dart';
 import 'package:ghost_hunt/ui/top_down_painter.dart';
@@ -67,6 +68,84 @@ void main() {
         await tester.tap(find.text('Hide map'));
         await tester.pump();
         expect(find.text('Map'), findsOneWidget);
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  for (final size in const [
+    Size(390, 844),
+    Size(620, 800),
+    Size(844, 390),
+    Size(1280, 800),
+  ]) {
+    testWidgets('easy HUD fits a $size window', (tester) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: GameScreen(
+            difficulty: Difficulty.easy,
+            sfx: Sfx(),
+            seed: 3,
+            profile: Profile()
+              ..coins = 123
+              ..highScore = 4560,
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 33));
+      final window = Offset.zero & size;
+      for (final t in [
+        '1UP',
+        'HIGH SCORE',
+        '4560',
+        '123',
+        'LEVEL 1',
+        'READY!',
+      ]) {
+        expect(find.text(t), findsOneWidget, reason: t);
+        final r = tester.getRect(find.text(t));
+        expect(window.contains(r.topLeft), isTrue, reason: t);
+        expect(window.contains(r.bottomRight), isTrue, reason: t);
+      }
+      expect(
+        tester.widget<Text>(find.text('HIGH SCORE')).style!.fontFamily,
+        'PressStart2P',
+      );
+      final lives = find.byWidgetPredicate(
+        (w) => w is CustomPaint && w.painter is RunnerIcon,
+      );
+      expect(lives, findsNWidgets(3));
+      // The pack buttons never cover the maze.
+      final paint = tester.widget<CustomPaint>(
+        find.byWidgetPredicate(
+          (w) => w is CustomPaint && w.painter is TopDownPainter,
+        ),
+      );
+      final painter = paint.painter! as TopDownPainter;
+      final layout = ArcadeLayout(size, painter.s.maze, painter.safe);
+      final field = layout.field;
+      // HUD rows hug the maze, READY! is inside it.
+      for (final t in ['1UP', 'HIGH SCORE', '4560']) {
+        final r = tester.getRect(find.text(t));
+        expect(r.bottom, lessThanOrEqualTo(field.top), reason: t);
+        expect(
+          r.top,
+          greaterThanOrEqualTo(field.top - 3 * layout.cell),
+          reason: t,
+        );
+      }
+      final below = tester.getRect(find.text('LEVEL 1'));
+      expect(below.top, greaterThanOrEqualTo(field.bottom));
+      expect(below.bottom, lessThanOrEqualTo(field.bottom + 2 * layout.cell));
+      final ready = tester.getRect(find.text('READY!'));
+      expect(field.contains(ready.center), isTrue);
+      for (final p in [PowerUp.speed, PowerUp.invisible, PowerUp.phase]) {
+        final r = tester.getRect(find.text(p.emoji));
+        expect(r.overlaps(field), isFalse, reason: '$p');
+        expect(window.contains(r.center), isTrue, reason: '$p');
       }
       expect(tester.takeException(), isNull);
     });

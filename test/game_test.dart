@@ -5,7 +5,7 @@ import 'package:ghost_hunt/game/maze.dart';
 
 void main() {
   group('Maze', () {
-    test('classic layout parses with 244 pellets', () {
+    test('layout parses with 244 pellets', () {
       final m = Maze.classic();
       expect(m.width, 28);
       expect(m.height, 31);
@@ -66,10 +66,10 @@ void main() {
     test('runs away from a ghost coming straight at it', () {
       final s = GameState(difficulty: Difficulty.hard, seed: 2);
       final m = s.maze;
-      // Bottom corridor (y=29): Pac-Man at x=10 heading left, player ghost
-      // at x=6 heading right towards it.
-      s.pac.placeAt(m.index(10, 29), Dir.left);
-      s.player.placeAt(m.index(6, 29), Dir.right);
+      // Bottom corridor (y=29), between junctions: Pac-Man at x=11 heading
+      // left, player ghost at x=7 heading right towards it.
+      s.pac.placeAt(m.index(11, 29), Dir.left);
+      s.player.placeAt(m.index(7, 29), Dir.right);
       s.phase = Phase.playing;
       s.brain.carelessness = 0;
       final d = s.brain.decide(s);

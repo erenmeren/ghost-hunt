@@ -23,11 +23,11 @@ extension PowerUpInfo on PowerUp {
 
   String get description => switch (this) {
     PowerUp.speed => 'Move 40% faster for 5 seconds.',
-    PowerUp.invisible => 'For 5 seconds Pac-Man can\'t see you or run from you. Catches still count.',
+    PowerUp.invisible => 'For 5 seconds the runner can\'t see you or run from you. Catches still count.',
     PowerUp.phase =>
       'Pass through walls for 3 seconds, except the outer walls.',
     PowerUp.sonar =>
-      'See Pac-Man\'s light and his spot on the map for 2 seconds. '
+      'See the runner\'s light and his spot on the map for 2 seconds. '
           'Hell\'s only visual hint.',
   };
 
@@ -65,7 +65,8 @@ extension UpgradeInfo on Upgrade {
 
   String get description => switch (this) {
     Upgrade.baseSpeed => 'Each upgrade level makes you 4% faster, permanently.',
-    Upgrade.hearing => 'Hear Pac-Man from 4 tiles farther per upgrade level.',
+    Upgrade.hearing =>
+      'Hear the runner from 4 tiles farther per upgrade level.',
     Upgrade.slots => 'Use 1 more pack per level.',
   };
 
@@ -86,6 +87,7 @@ class Profile {
   static const welcomeCoins = 150;
 
   int coins = 0;
+  int highScore = 0;
   final Map<PowerUp, int> packs = {for (final p in PowerUp.values) p: 0};
   final Map<Upgrade, int> upgrades = {for (final u in Upgrade.values) u: 0};
 
@@ -137,8 +139,16 @@ class Profile {
     onChanged?.call();
   }
 
+  /// Remembers [score] if it beats the best one so far.
+  void recordScore(int score) {
+    if (score <= highScore) return;
+    highScore = score;
+    onChanged?.call();
+  }
+
   String toJson() => jsonEncode({
     'coins': coins,
+    'highScore': highScore,
     'packs': {for (final e in packs.entries) e.key.name: e.value},
     'upgrades': {for (final e in upgrades.entries) e.key.name: e.value},
   });
@@ -149,6 +159,7 @@ class Profile {
     try {
       final j = jsonDecode(raw) as Map<String, dynamic>;
       p.coins = (j['coins'] as num?)?.toInt() ?? 0;
+      p.highScore = (j['highScore'] as num?)?.toInt() ?? 0;
       final packs = (j['packs'] as Map?) ?? const {};
       for (final u in PowerUp.values) {
         p.packs[u] = (packs[u.name] as num?)?.toInt() ?? 0;
@@ -175,14 +186,28 @@ class Rewards {
     Difficulty.hell => 4,
   };
 
-  /// Catching Pac-Man yourself: 20 base, up to +20 the fewer pellets he ate.
+  /// Catching the runner yourself: 20 base, up to +20 the fewer pellets he ate.
   static int playerCatch(Difficulty d, double pelletsLeftFraction) =>
       (20 + 20 * pelletsLeftFraction.clamp(0.0, 1.0)).round() * multiplier(d);
 
   /// A teammate caught him.
   static int teamCatch(Difficulty d) => 5 * multiplier(d);
 
-  /// Clearing a level (Pac-Man out of lives).
+  /// Clearing a level (the runner out of lives).
   static int levelWin(Difficulty d, int level) =>
       (25 + 10 * level) * multiplier(d);
+}
+
+/// Points for the arcade score (the mode multiplies them like coins).
+class Score {
+  /// Your own catch: 500, up to +500 the fewer pellets he ate.
+  static int playerCatch(Difficulty d, double pelletsLeftFraction) =>
+      (50 + 50 * pelletsLeftFraction.clamp(0.0, 1.0)).round() *
+      10 *
+      Rewards.multiplier(d);
+
+  static int teamCatch(Difficulty d) => 100 * Rewards.multiplier(d);
+
+  static int levelWin(Difficulty d, int level) =>
+      (800 + 200 * level) * Rewards.multiplier(d);
 }

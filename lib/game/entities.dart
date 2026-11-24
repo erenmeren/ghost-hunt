@@ -16,7 +16,7 @@ class Mover {
   double speed; // tiles per second
   bool stopped = false;
 
-  double x(Maze m) => m.xOf(tile) + 0.5 + dir.dx * progress;
+  double x(Maze m) => m.wrapX(m.xOf(tile) + 0.5 + dir.dx * progress);
   double y(Maze m) => m.yOf(tile) + 0.5 + dir.dy * progress;
 
   /// The tile whose centre is closest to the mover.

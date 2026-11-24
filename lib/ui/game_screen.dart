@@ -7,14 +7,17 @@ import 'package:flutter/services.dart';
 import '../audio/sfx.dart';
 import '../game/economy.dart';
 import '../game/entities.dart';
+import '../game/fruit.dart';
 import '../game/game_state.dart';
 import '../game/maze.dart';
+import 'arcade_layout.dart';
 import 'minimap_painter.dart';
 import 'raycast_painter.dart';
 import 'shader_scene.dart';
 import 'shop_screen.dart';
 import 'sprites.dart';
 import 'top_down_painter.dart';
+import 'wall_art.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({
@@ -67,7 +70,7 @@ class _GameScreenState extends State<GameScreen>
   Scene3D? scene;
 
   /// Hell only: a short hop that lets you peek over the walls for
-  /// Pac-Man's glow. Needs the 3D renderer.
+  /// the runner's glow. Needs the 3D renderer.
   static const jumpTime = 1.1, jumpCooldown = 4.0;
   double _jumpT = 0, _jumpCool = 0;
   bool get _canJump =>
@@ -83,12 +86,20 @@ class _GameScreenState extends State<GameScreen>
 
   final view3d = View3D();
 
-  void _newGame(int level) {
+  /// Fruit he ate in earlier levels of this run.
+  List<FruitType> _earlierFruit = [];
+  List<FruitType> get _fruitRow {
+    final all = [..._earlierFruit, ...s.eatenFruit];
+    return all.length > 7 ? all.sublist(all.length - 7) : all;
+  }
+
+  void _newGame(int level, {int score = 0}) {
     s = GameState(
       difficulty: widget.difficulty,
       level: level,
       seed: widget.seed,
       profile: profile,
+      score: score,
     );
     final m = s.maze;
     cam = Camera(s.player.x(m), s.player.y(m), s.player.dir.angle);
@@ -155,33 +166,40 @@ class _GameScreenState extends State<GameScreen>
         }
       case EventType.power:
         sfx.play('power', volume: 0.6);
-        _say('Pac-Man ate a power pellet! RUN!', 2);
+        _say('POWER PELLET! RUN!', 2);
       case EventType.ghostEaten:
         sfx.play('eat_ghost', volume: 0.5);
       case EventType.playerEaten:
         sfx.play('eat_ghost', volume: 0.8);
-        _say('You got eaten! Respawning…', 3);
+        _say('YOU GOT EATEN!\nRESPAWNING', 3);
       case EventType.pacCaught:
         sfx.play('death', volume: 0.7);
         _say(
           e.byPlayer
-              ? 'YOU GOT HIM! 👻  +${e.coins} 🪙'
-              : 'A teammate got him!  +${e.coins} 🪙',
+              ? 'YOU GOT HIM!\n+${e.coins} COINS'
+              : 'A TEAMMATE GOT HIM!\n+${e.coins} COINS',
           1.6,
         );
       case EventType.won:
         sfx.play('win', volume: 0.7);
       case EventType.powerUp:
         sfx.play('power', volume: 0.35);
-        _say('${e.powerUp!.emoji} ${e.powerUp!.title}!', 1.2);
+        _say('${e.powerUp!.title.toUpperCase()}!', 1.2);
       case EventType.powerUpEnd:
         sfx.play('turn', volume: 0.5);
+      case EventType.fruitAppeared:
+        sfx.play('turn', volume: 0.4);
+      case EventType.fruitEaten:
+        sfx.play('power', volume: 0.4);
+        _say('HE ATE THE FRUIT!\nFASTER FOR A MOMENT', 1.6);
+      case EventType.fruitGone:
+        break;
       case EventType.lost:
         sfx.play('lose', volume: 0.7);
     }
   }
 
-  /// Waka gets louder the closer Pac-Man is *through the corridors* and is
+  /// Waka gets louder the closer the runner is *through the corridors* and is
   /// panned towards the side it is on.
   void _proximityWaka(int tile) {
     final m = s.maze;
@@ -304,7 +322,10 @@ class _GameScreenState extends State<GameScreen>
               Positioned.fill(
                 child: CustomPaint(
                   painter: !fp
-                      ? TopDownPainter(s)
+                      ? TopDownPainter(
+                          s,
+                          safe: _fieldInsets(MediaQuery.sizeOf(context)),
+                        )
                       : scene != null
                       ? ShaderScenePainter(scene!, s, cam, view3d)
                       : RaycastPainter(s, cam),
@@ -347,12 +368,15 @@ class _GameScreenState extends State<GameScreen>
                     ),
                   ),
                 ),
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: SafeArea(child: _hud()),
-              ),
+              if (fp)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: SafeArea(child: _hud()),
+                )
+              else
+                Positioned.fill(child: _arcadeHud()),
               if (fp) _turnButtons(),
               _powerBar(),
               if (fp) _minimap(),
@@ -366,37 +390,140 @@ class _GameScreenState extends State<GameScreen>
     );
   }
 
+  /// First-person modes: one compact row.
   Widget _hud() {
-    const style = TextStyle(
-      color: Colors.white,
-      fontSize: 15,
-      fontWeight: FontWeight.bold,
-    );
+    final style = pixelText(10);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.pause_circle_outline, color: Colors.white),
-            onPressed: () => setState(() => paused = true),
-          ),
-          Text('Level ${s.level}', style: style),
-          const SizedBox(width: 14),
-          Text('Pellets ${s.maze.pelletsLeft}', style: style),
-          const SizedBox(width: 14),
-          CoinLabel(profile.coins),
-          const Spacer(),
-          Text('Caught ${s.playerCatches}  ', style: style),
-          for (var i = 0; i < s.pacLives; i++)
-            Padding(
-              padding: const EdgeInsets.only(left: 4),
-              child: CustomPaint(size: const Size(18, 18), painter: _PacIcon()),
+          _pauseButton(40),
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Row(
+                children: [
+                  Text('LEVEL ${s.level}', style: style),
+                  const SizedBox(width: 16),
+                  Text('PELLETS ${s.maze.pelletsLeft}', style: style),
+                  const SizedBox(width: 16),
+                  Text('SCORE ${s.score}', style: style),
+                  const SizedBox(width: 16),
+                  Text(
+                    'COINS ${profile.coins}',
+                    style: pixelText(10, color: gateColor),
+                  ),
+                  const SizedBox(width: 16),
+                  for (var i = 0; i < s.pacLives; i++)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 4),
+                      child: CustomPaint(
+                        size: Size(18, 18),
+                        painter: RunnerIcon(),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          const SizedBox(width: 8),
+          ),
         ],
       ),
     );
   }
+
+  Widget _pauseButton(double size) => SizedBox(
+    width: size,
+    height: size,
+    child: IconButton(
+      padding: EdgeInsets.zero,
+      iconSize: size * 0.6,
+      tooltip: 'Pause',
+      icon: const Icon(Icons.pause, color: Colors.white54),
+      onPressed: () => setState(() => paused = true),
+    ),
+  );
+
+  /// Easy: scores above the maze, lives and bonus items below it, all on
+  /// the maze's own tile grid.
+  Widget _arcadeHud() => LayoutBuilder(
+    builder: (context, box) {
+      final m = s.maze;
+      final l = ArcadeLayout(box.biggest, m, _fieldInsets(box.biggest));
+      final size = l.cell;
+      Widget put(Rect r, Alignment align, Widget child) => Positioned.fromRect(
+        rect: r,
+        child: FittedBox(fit: BoxFit.scaleDown, alignment: align, child: child),
+      );
+      Widget label(String t) => Text(t, style: pixelText(size, color: _label));
+      Widget value(Object v) => Text('$v', style: pixelText(size));
+      // Tiny phones still get a pause button big enough to hit.
+      final pause = math.max(36.0, size * 2.2);
+      final icon = size * 1.5;
+      final bottom = m.height.toDouble();
+      return Stack(
+        children: [
+          put(l.tiles(1, -2.8, 8, 1), Alignment.centerLeft, label('1UP')),
+          put(l.tiles(1, -1.6, 8, 1), Alignment.centerLeft, value(s.score)),
+          put(l.tiles(9, -2.8, 10, 1), Alignment.center, label('HIGH SCORE')),
+          put(
+            l.tiles(9, -1.6, 10, 1),
+            Alignment.center,
+            value(profile.highScore),
+          ),
+          put(
+            l.tiles(19.5, -2.6, 5, 0.8),
+            Alignment.centerRight,
+            Text('COINS', style: pixelText(size * 0.7, color: Colors.white38)),
+          ),
+          put(
+            l.tiles(19.5, -1.55, 5, 0.8),
+            Alignment.centerRight,
+            Text(
+              '${profile.coins}',
+              style: pixelText(size * 0.7, color: gateColor),
+            ),
+          ),
+          Positioned(
+            left: l.field.right - pause,
+            top: math.max(0, l.field.top - size * 1.5 - pause / 2),
+            child: _pauseButton(pause),
+          ),
+          put(
+            l.tiles(1, bottom + 0.2, 9, 1.6),
+            Alignment.centerLeft,
+            Row(
+              children: [
+                for (var i = 0; i < s.pacLives; i++)
+                  Padding(
+                    padding: EdgeInsets.only(right: size * 0.5),
+                    child: CustomPaint(
+                      size: Size.square(icon),
+                      painter: const RunnerIcon(),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          put(
+            l.tiles(10, bottom + 0.5, 8, 1),
+            Alignment.center,
+            Text(
+              'LEVEL ${s.level}',
+              style: pixelText(size * 0.8, color: Colors.white54),
+            ),
+          ),
+          put(
+            l.tiles(18, bottom + 0.2, 9, 1.6),
+            Alignment.centerRight,
+            _fruitIcons(icon),
+          ),
+        ],
+      );
+    },
+  );
+
+  static const _label = Color(0xFFFF5A5A);
 
   Widget _turnButtons() {
     Widget btn(IconData icon, VoidCallback onTap, bool active) => Padding(
@@ -456,6 +583,20 @@ class _GameScreenState extends State<GameScreen>
     return p == TargetPlatform.iOS || p == TargetPlatform.android;
   }
 
+  static const _packSize = 42.0, _packGap = 6.0;
+
+  /// Easy with no room beside the maze: the packs go in a row below it.
+  bool _packsBelow(Size size) =>
+      ArcadeLayout(size, s.maze, MediaQuery.paddingOf(context)).field.left <
+      _packSize + 22;
+
+  /// Space the maze must leave free: notches, and the pack row if needed.
+  EdgeInsets _fieldInsets(Size size) {
+    final safe = MediaQuery.paddingOf(context);
+    if (!_packsBelow(size)) return safe;
+    return safe + const EdgeInsets.symmetric(vertical: _packSize + 10);
+  }
+
   Widget _powerBar() {
     final fp = s.firstPerson;
     Widget btn(PowerUp p, int key) {
@@ -463,59 +604,50 @@ class _GameScreenState extends State<GameScreen>
       final left = s.active[p];
       final usable = s.canUse(p);
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.all(_packGap / 2),
         child: Material(
-          color: left != null
-              ? s.player.color.withValues(alpha: 0.6)
-              : Colors.white.withValues(alpha: usable ? 0.16 : 0.06),
-          borderRadius: BorderRadius.circular(12),
+          color: Colors.black.withValues(alpha: 0.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(6),
+            side: BorderSide(
+              color: left != null
+                  ? s.player.color
+                  : neonColor.withValues(alpha: usable ? 0.8 : 0.3),
+            ),
+          ),
           child: InkWell(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(6),
             onTap: usable ? () => s.usePowerUp(p) : null,
             child: SizedBox(
-              width: 54,
-              height: 54,
+              width: _packSize,
+              height: _packSize,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
                   Opacity(
-                    opacity: usable || left != null ? 1 : 0.35,
-                    child: Text(p.emoji, style: const TextStyle(fontSize: 26)),
+                    opacity: usable || left != null ? 0.9 : 0.35,
+                    child: Text(p.emoji, style: const TextStyle(fontSize: 20)),
                   ),
                   if (left != null)
                     Positioned(
-                      bottom: 2,
-                      child: Text(
-                        left.toStringAsFixed(1),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      bottom: 3,
+                      child: Text(left.toStringAsFixed(1), style: pixelText(7)),
                     ),
                   Positioned(
-                    right: 4,
-                    top: 2,
+                    right: 3,
+                    top: 3,
                     child: Text(
                       '$count',
-                      style: const TextStyle(
-                        color: pacYellow,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
-                      ),
+                      style: pixelText(7, color: gateColor),
                     ),
                   ),
                   if (!_touch)
                     Positioned(
-                      left: 5,
-                      top: 2,
+                      left: 3,
+                      top: 3,
                       child: Text(
                         '$key',
-                        style: const TextStyle(
-                          color: Colors.white38,
-                          fontSize: 10,
-                        ),
+                        style: pixelText(7, color: Colors.white38),
                       ),
                     ),
                 ],
@@ -527,27 +659,51 @@ class _GameScreenState extends State<GameScreen>
     }
 
     final packs = _packButtons;
+    final buttons = [
+      for (var i = 0; i < packs.length; i++) btn(packs[i], i + 1),
+    ];
+    final uses = Text(
+      'USES ${s.packsLeftThisLevel}',
+      style: pixelText(7, color: Colors.white54),
+    );
+    final size = MediaQuery.sizeOf(context);
+    if (!fp && _packsBelow(size)) {
+      final l = ArcadeLayout(size, s.maze, _fieldInsets(size));
+      return Positioned(
+        left: 0,
+        right: 0,
+        top: l.field.bottom + l.cell * ArcadeLayout.bottomRows + 4,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [...buttons, const SizedBox(width: 8), uses],
+        ),
+      );
+    }
     return Positioned(
       left: 10,
-      top: 0,
+      top: fp ? 44 : 0,
       bottom: fp ? 100 : 0,
       child: SafeArea(
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var i = 0; i < packs.length; i++) btn(packs[i], i + 1),
-              const SizedBox(height: 2),
-              Text(
-                'Uses: ${s.packsLeftThisLevel}',
-                style: const TextStyle(color: Colors.white54, fontSize: 11),
-              ),
-            ],
+            children: [...buttons, const SizedBox(height: 4), uses],
           ),
         ),
       ),
     );
   }
+
+  Widget _fruitIcons([double size = 22]) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      for (final t in _fruitRow)
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: CustomPaint(size: Size.square(size), painter: FruitIcon(t)),
+        ),
+    ],
+  );
 
   Widget _minimap() {
     final short = MediaQuery.sizeOf(context).shortestSide;
@@ -561,6 +717,11 @@ class _GameScreenState extends State<GameScreen>
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (_fruitRow.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: _fruitIcons(),
+              ),
             if (showMap)
               Container(
                 width: w,
@@ -595,19 +756,45 @@ class _GameScreenState extends State<GameScreen>
     String? text = flash;
     if (s.phase == Phase.ready) text = 'READY!';
     if (text == null) return const SizedBox.shrink();
-    return IgnorePointer(
-      child: Align(
-        alignment: const Alignment(0, -0.35),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: pacYellow,
-            fontSize: 30,
-            fontWeight: FontWeight.w900,
-            shadows: [Shadow(blurRadius: 8, color: Colors.black)],
-          ),
+    final banner = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: pixelText(s.firstPerson ? 16 : 14, color: pacYellow).copyWith(
+          height: 1.5,
+          shadows: const [
+            Shadow(blurRadius: 4, color: Colors.black),
+            Shadow(blurRadius: 10, color: Colors.black),
+          ],
         ),
+      ),
+    );
+    if (s.firstPerson || s.phase != Phase.ready) {
+      return IgnorePointer(
+        child: Align(alignment: const Alignment(0, -0.35), child: banner),
+      );
+    }
+    // READY! sits in the corridor below the ghost house.
+    return IgnorePointer(
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final m = s.maze;
+          final l = ArcadeLayout(box.biggest, m, _fieldInsets(box.biggest));
+          return Stack(
+            children: [
+              Positioned.fromRect(
+                rect: l.tiles(8, m.yOf(m.fruitTile).toDouble(), 12, 1),
+                child: FittedBox(
+                  child: Text(
+                    text!,
+                    style: pixelText(l.cell, color: pacYellow),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -630,14 +817,7 @@ class _GameScreenState extends State<GameScreen>
   );
 
   Widget _pauseMenu() => _panel([
-    const Text(
-      'Paused',
-      style: TextStyle(
-        color: Colors.white,
-        fontSize: 24,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
+    Text('PAUSED', style: pixelText(20)),
     const SizedBox(height: 20),
     FilledButton(
       onPressed: () => setState(() => paused = false),
@@ -654,22 +834,29 @@ class _GameScreenState extends State<GameScreen>
     final won = s.phase == Phase.won;
     return _panel([
       Text(
-        won ? 'Pac-Man caught!' : 'Pac-Man got away…',
-        style: TextStyle(
-          color: won ? s.player.color : pacYellow,
-          fontSize: 26,
-          fontWeight: FontWeight.w900,
-        ),
+        won ? 'RUNNER CAUGHT!' : 'GAME OVER',
+        textAlign: TextAlign.center,
+        style: pixelText(
+          18,
+          color: won ? s.player.color : _label,
+        ).copyWith(height: 1.4),
       ),
       const SizedBox(height: 10),
       Text(
         won
             ? 'Your catches: ${s.playerCatches} / ${s.teamCatches}\nTime: ${s.time.toStringAsFixed(0)} s'
-            : 'He ate all the pellets.\nLives left: ${s.pacLives}',
+            : 'The runner ate all the pellets.\nLives left: ${s.pacLives}',
         textAlign: TextAlign.center,
         style: const TextStyle(color: Colors.white70, fontSize: 16),
       ),
+      const SizedBox(height: 12),
+      Text('SCORE ${s.score}', style: pixelText(12)),
       const SizedBox(height: 8),
+      Text(
+        'HIGH SCORE ${profile.highScore}',
+        style: pixelText(10, color: Colors.white54),
+      ),
+      const SizedBox(height: 12),
       Text(
         'Earned this level: ${s.coinsEarned} 🪙   Total: ${profile.coins} 🪙',
         textAlign: TextAlign.center,
@@ -689,7 +876,10 @@ class _GameScreenState extends State<GameScreen>
       const SizedBox(height: 8),
       if (won)
         FilledButton(
-          onPressed: () => setState(() => _newGame(s.level + 1)),
+          onPressed: () => setState(() {
+            _earlierFruit = _fruitRow;
+            _newGame(s.level + 1, score: s.score);
+          }),
           child: Text('Next level (${s.level + 1})'),
         ),
       if (!won)
@@ -706,16 +896,33 @@ class _GameScreenState extends State<GameScreen>
   }
 }
 
-class _PacIcon extends CustomPainter {
+/// One of the runner's lives in the HUD.
+class RunnerIcon extends CustomPainter {
+  const RunnerIcon();
+
   @override
-  void paint(Canvas canvas, Size size) => drawPacman(
+  void paint(Canvas canvas, Size size) => drawRunner(
     canvas,
     size.center(Offset.zero),
     size.width / 2,
-    0.6,
+    0.5,
     facing: math.pi,
   );
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant RunnerIcon oldDelegate) => false;
+}
+
+/// One eaten fruit in the HUD row.
+class FruitIcon extends CustomPainter {
+  const FruitIcon(this.type);
+
+  final FruitType type;
+
+  @override
+  void paint(Canvas canvas, Size size) =>
+      drawFruit(canvas, size.center(Offset.zero), size.width / 2, type);
+
+  @override
+  bool shouldRepaint(covariant FruitIcon old) => old.type != type;
 }

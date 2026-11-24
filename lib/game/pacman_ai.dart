@@ -58,6 +58,7 @@ class PacmanAI {
         ? 0.0
         : ((10 - nearest) / 10).clamp(0.0, 1.0).toDouble();
 
+    final fruit = s.fruit;
     var best = -double.infinity;
     var bestDir = options.first;
     for (final d in options) {
@@ -68,6 +69,7 @@ class PacmanAI {
 
       var pelletD = 60;
       var powerD = 1 << 20;
+      var fruitD = 1 << 20;
       var safeArea = 0;
       for (var t = 0; t < dp.length; t++) {
         final pd = dp[t];
@@ -83,6 +85,7 @@ class PacmanAI {
           if (safe && pd <= 20) safeArea++;
         }
         final tile = m.tiles[t];
+        if (safe && fruit != null && t == fruit.tile) fruitD = pd;
         if (safe && (tile == Tile.pellet || tile == Tile.power)) {
           if (pd < pelletD) pelletD = pd;
           if (tile == Tile.power && pd < powerD) powerD = pd;
@@ -106,6 +109,13 @@ class PacmanAI {
         } else if (dn == 2) {
           score -= 40 * smart;
         }
+      }
+
+      // A fruit he can safely reach in time beats the nearest pellet.
+      if (fruit != null &&
+          fruitD < 30 &&
+          (fruitD + 1) / pac.speed < fruit.timeLeft) {
+        score += (30 - fruitD) * 2.0 * (1 - 0.7 * danger);
       }
 
       if (smart > 0.25 && s.frightTimer > 0.5) {

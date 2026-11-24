@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ghost_hunt/game/fruit.dart';
 import 'package:ghost_hunt/game/game_state.dart';
 import 'package:ghost_hunt/game/maze.dart';
 import 'package:ghost_hunt/ui/raycast_painter.dart';
@@ -51,6 +52,18 @@ Future<double> contrast(ui.Image img) async {
   return (hi - lo).toDouble();
 }
 
+/// Red level around the point where the fruit/tunnel end is drawn.
+Future<int> middleRed(ui.Image img) async {
+  final d = (await img.toByteData())!;
+  var hi = 0;
+  for (var y = 130; y < 170; y += 2) {
+    for (var x = 232; x < 248; x += 2) {
+      hi = math.max(hi, d.getUint8((y * img.width + x) * 4));
+    }
+  }
+  return hi;
+}
+
 void main() {
   testWidgets('3D shader scene renders a real picture', (tester) async {
     await tester.runAsync(() async {
@@ -76,6 +89,32 @@ void main() {
           ..eyeHeight = 2.0
           ..pitch = -0.35;
         await shot(scene, s, cam, v, '3d_${d.name}_high');
+
+        // Fruit ahead, then the dark end of the side tunnel.
+        final level = View3D();
+        final seen = await shot(
+          scene,
+          s..fruit = Fruit(FruitType.pumpkin, m.fruitTile, 9),
+          Camera(m.xOf(m.fruitTile) - 2.5, m.yOf(m.fruitTile) + 0.5, 0),
+          level,
+          '3d_${d.name}_fruit',
+        );
+        final gone = await shot(
+          scene,
+          s..fruit = null,
+          Camera(m.xOf(m.fruitTile) - 2.5, m.yOf(m.fruitTile) + 0.5, 0),
+          level,
+          '3d_${d.name}_nofruit',
+        );
+        expect(await middleRed(seen), greaterThan(await middleRed(gone) + 30));
+        final tunnel = await shot(
+          scene,
+          s,
+          Camera(4.5, 12.5, math.pi),
+          level,
+          '3d_${d.name}_tunnel',
+        );
+        expect(await middleRed(tunnel), lessThan(60));
       }
     });
   });

@@ -39,6 +39,45 @@ void main() {
     expect(Profile.fromJson('{nope').coins, 0);
   });
 
+  test('high score only goes up and survives a JSON round trip', () {
+    var saves = 0;
+    final p = Profile()..onChanged = () => saves++;
+    p.recordScore(900);
+    p.recordScore(400);
+    expect(p.highScore, 900);
+    expect(saves, 1);
+    expect(Profile.fromJson(p.toJson()).highScore, 900);
+    // Saves from before there was a high score.
+    expect(Profile.fromJson('{"coins": 5}').highScore, 0);
+  });
+
+  test('catches and a win score points and carry over', () {
+    final p = Profile();
+    final s = GameState(
+      difficulty: Difficulty.easy,
+      seed: 1,
+      profile: p,
+      score: 300,
+    )..phase = Phase.playing;
+    final full = Score.playerCatch(Difficulty.easy, 1);
+    s.player.placeAt(s.pac.tile, Dir.left);
+    s.update(0.01);
+    expect(s.pacLives, 2);
+    expect(s.score, 300 + full);
+    expect(p.highScore, s.score);
+    s
+      ..pacLives = 1
+      ..phase = Phase.playing;
+    s.player.placeAt(s.pac.tile, Dir.left);
+    s.update(0.01);
+    expect(s.phase, Phase.won);
+    expect(
+      s.score,
+      greaterThanOrEqualTo(300 + full + Score.levelWin(Difficulty.easy, 1)),
+    );
+    expect(p.highScore, s.score);
+  });
+
   test('packs: limited per level, timed, consumed', () {
     final p = Profile();
     for (final u in PowerUp.values) {

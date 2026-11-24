@@ -72,7 +72,7 @@ class _ShopScreenState extends State<ShopScreen> {
                 ),
               const SizedBox(height: 18),
               const Text(
-                'Catch Pac-Man to earn coins. The earlier you catch him, '
+                'Catch the runner to earn coins. The earlier you catch him, '
                 'the more you get. Hard ×2, Hell ×4.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white38, fontSize: 12),

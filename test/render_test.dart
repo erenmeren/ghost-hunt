@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ghost_hunt/game/entities.dart';
+import 'package:ghost_hunt/game/fruit.dart';
 import 'package:ghost_hunt/game/game_state.dart';
 import 'package:ghost_hunt/game/maze.dart';
 import 'package:ghost_hunt/ui/minimap_painter.dart';
@@ -60,6 +61,25 @@ void main() {
     final m = s.maze;
     final cam = Camera(s.player.x(m), s.player.y(m), s.player.dir.angle);
     await render('ray_pac_in_view', RaycastPainter(s, cam), view);
+
+    // Fruit and the side tunnel.
+    s.fruit = Fruit(FruitType.pumpkin, m.fruitTile, 9);
+    s.player.placeAt(m.index(0, 12), Dir.left);
+    await render('top_fruit', TopDownPainter(s), const Size(560, 620));
+    await render('map_fruit', MinimapPainter(s, 0), const Size(220, 244));
+    await render(
+      'ray_fruit',
+      RaycastPainter(
+        s,
+        Camera(m.xOf(m.fruitTile) - 2.5, m.yOf(m.fruitTile) + 0.5, 0),
+      ),
+      view,
+    );
+    await render(
+      'ray_tunnel',
+      RaycastPainter(s, Camera(4.5, 12.5, Dir.left.angle)),
+      view,
+    );
   });
 
   test('heart beat rises and falls', () {
